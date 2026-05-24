@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>pi-provider-agent-v0 Interface Definition</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #111111;
+      --muted: #55524c;
+      --canvas: #ffffff;
+      --soft: #f7f6f2;
+      --line: #d9d6ce;
+      --accent: #d9ff5a;
+      --code: #f1efe8;
+      --link: #1638aa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    header {
+      padding: 48px clamp(20px, 5vw, 72px);
+      background: var(--accent);
+      border-bottom: 1px solid var(--line);
+    }
+    header p { max-width: 880px; margin: 12px 0 0; font-size: 1.08rem; }
+    h1 { margin: 0; font-size: clamp(2.5rem, 7vw, 5rem); line-height: .95; letter-spacing: -0.055em; font-weight: 520; }
+    h2 { margin-top: 44px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 1.8rem; letter-spacing: -0.025em; }
+    h3 { margin-top: 28px; font-size: 1.25rem; }
+    main { display: grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); gap: 32px; width: min(1440px, calc(100vw - 32px)); margin: 0 auto; padding: 32px 0 64px; }
+    nav { position: sticky; top: 16px; align-self: start; padding: 16px; border: 1px solid var(--line); border-radius: 18px; background: var(--soft); }
+    nav strong { display: block; margin-bottom: 10px; font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; }
+    nav a { display: block; padding: 6px 0; color: var(--link); text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    article { min-width: 0; }
+    table { width: 100%; border-collapse: collapse; margin: 14px 0 24px; font-size: .95rem; }
+    th, td { padding: 10px 12px; border: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { background: var(--soft); }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    code { padding: 2px 5px; border-radius: 5px; background: var(--code); }
+    pre { overflow: auto; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--code); font-size: .9rem; }
+    .callout { padding: 16px; border: 1px solid var(--line); border-radius: 18px; background: var(--soft); }
+    .endpoint { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #111; color: #fff; font-family: ui-monospace, monospace; font-size: .82rem; }
+    .muted { color: var(--muted); }
+    ul { padding-left: 1.2rem; }
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+      nav { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>pi-provider-agent-v0</h1>
+    <p>Light-mode interface definition for the Pi Provider Protocol Work Plane. Markdown source of truth: <code>docs/specs/pi-provider-agent-v0.md</code>.</p>
+  </header>
+  <main>
+    <nav aria-label="Table of contents">
+      <strong>Contents</strong>
+      <a href="#rules">Core rules</a>
+      <a href="#constants">Protocol constants</a>
+      <a href="#interfaces">Required interfaces</a>
+      <a href="#auth">Authentication</a>
+      <a href="#errors">Error envelope</a>
+      <a href="#profile">Provider Profile</a>
+      <a href="#health">Health</a>
+      <a href="#runs">Runs</a>
+      <a href="#sessions">Sessions</a>
+      <a href="#messages">Messages</a>
+      <a href="#events">Events</a>
+      <a href="#conversation">Conversation</a>
+      <a href="#sse">SSE stream</a>
+      <a href="#taxonomy">Event taxonomy</a>
+      <a href="#out-of-scope">Not baseline</a>
+    </nav>
+    <article>
+      <section id="rules">
+        <h2>Core rules</h2>
+        <div class="callout">
+          <p><strong>Protocol baseline interfaces are mandatory.</strong> A provider that declares <code>pi-provider-agent-v0</code> compatibility must implement every interface in this document.</p>
+          <p><strong>Capabilities are not endpoint toggles.</strong> Provider profile and installed skills describe what work the agent can perform.</p>
+          <p><strong>Control Center does not manage provider internals.</strong> Agent files and credential/model/skill configuration belong to the Pi Agent Runtime Owner Plane.</p>
+        </div>
+      </section>
+
+      <section id="constants">
+        <h2>Protocol constants</h2>
+        <table><tbody>
+          <tr><th>Protocol name</th><td><code>pi-provider</code></td></tr>
+          <tr><th>Baseline</th><td><code>pi-provider-agent-v0</code></td></tr>
+          <tr><th>Version format</th><td>Date-like string, e.g. <code>2026-05</code></td></tr>
+          <tr><th>Realtime transport</th><td>SSE</td></tr>
+          <tr><th>Duplex WebSocket</th><td>Not part of v0 baseline</td></tr>
+        </tbody></table>
+      </section>
+
+      <section id="interfaces">
+        <h2>Required interfaces</h2>
+        <table>
+          <thead><tr><th>Area</th><th>Method/path</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>Provider Profile</td><td><span class="endpoint">GET /.well-known/pi-api/provider</span></td><td>Discovery endpoint for registering/verifying providers.</td></tr>
+            <tr><td>Provider Profile</td><td><span class="endpoint">GET /provider/profile</span></td><td>Explicit profile API endpoint.</td></tr>
+            <tr><td>Health</td><td><span class="endpoint">GET /health</span></td><td>Liveness/readiness and protocol metadata.</td></tr>
+            <tr><td>Runs</td><td><span class="endpoint">POST /runs</span></td><td>Create assigned work.</td></tr>
+            <tr><td>Runs</td><td><span class="endpoint">GET /runs/:runId</span></td><td>Read run status.</td></tr>
+            <tr><td>Runs</td><td><span class="endpoint">POST /runs/:runId/cancel</span></td><td>Request cancellation.</td></tr>
+            <tr><td>Sessions</td><td><span class="endpoint">GET /sessions</span></td><td>List sessions.</td></tr>
+            <tr><td>Sessions</td><td><span class="endpoint">GET /sessions/:sessionId</span></td><td>Read session status.</td></tr>
+            <tr><td>Messages</td><td><span class="endpoint">GET /sessions/:sessionId/messages</span></td><td>Read transcript messages.</td></tr>
+            <tr><td>Events</td><td><span class="endpoint">GET /sessions/:sessionId/events</span></td><td>Read ordered events.</td></tr>
+            <tr><td>Conversation</td><td><span class="endpoint">GET /conversations/:sessionId</span></td><td>Read conversation projection.</td></tr>
+            <tr><td>Conversation</td><td><span class="endpoint">POST /conversations/:sessionId/messages</span></td><td>Send user/operator message.</td></tr>
+            <tr><td>Conversation</td><td><span class="endpoint">POST /conversations/:sessionId/stop</span></td><td>Stop current conversation work.</td></tr>
+            <tr><td>Realtime</td><td><span class="endpoint">GET /sessions/:sessionId/events/stream</span></td><td>Canonical one-way SSE stream.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="auth"><h2>Authentication</h2><pre><code>Authorization: Bearer &lt;provider-access-token&gt;</code></pre><p>Provider access tokens authorize Control Center to call Work Plane APIs. They are distinct from project work credentials installed by the agent owner.</p></section>
+
+      <section id="errors"><h2>Standard error envelope</h2><pre><code>{
+  "error": {
+    "code": "provider.unavailable",
+    "message": "Provider is temporarily unavailable",
+    "retryable": true,
+    "details": {}
+  }
+}</code></pre></section>
+
+      <section id="profile"><h2>Provider Profile</h2><p>Source: <code>~/.pi/agent/PROFILE.md</code>. Installed skills are read from <code>~/.pi/agent/skills/</code> and are always public in v0.</p><pre><code>{
+  "protocol": { "name": "pi-provider", "version": "2026-05", "baseline": "pi-provider-agent-v0" },
+  "profile": {
+    "id": "ego-agent",
+    "displayName": "Ego Coding Agent",
+    "headline": "General coding and operations agent",
+    "summary": "I help implement GitLab issues and maintain SvelteKit apps.",
+    "operator": { "name": "ego", "contact": "mrego@anakonn.com" },
+    "links": []
+  },
+  "skills": [
+    { "name": "architecture-review", "description": "Reviews module boundaries and architecture friction." }
+  ]
+}</code></pre></section>
+
+      <section id="health"><h2>Health / Readiness</h2><p><span class="endpoint">GET /health</span></p><pre><code>{
+  "ok": true,
+  "service": "pi-api",
+  "version": "0.4.0",
+  "protocol": { "name": "pi-provider", "version": "2026-05", "baseline": "pi-provider-agent-v0" },
+  "status": { "readiness": "ready", "activeRuns": 1, "queuedRuns": 2, "maxConcurrentRuns": 3 }
+}</code></pre></section>
+
+      <section id="runs"><h2>Runs</h2><p>Runs are assigned units of work.</p><pre><code>POST /runs
+GET /runs/:runId
+POST /runs/:runId/cancel</code></pre><p>Cancellation is a request. Providers should return resulting run state or a standard error.</p></section>
+
+      <section id="sessions"><h2>Sessions</h2><p>Sessions are the canonical work record. Reads are status queries and must not call AI.</p><pre><code>GET /sessions?limit=25&amp;cursor=&lt;cursor&gt;
+GET /sessions/:sessionId</code></pre></section>
+
+      <section id="messages"><h2>Session messages</h2><pre><code>GET /sessions/:sessionId/messages?limit=100&amp;cursor=&lt;cursor&gt;</code></pre><p>Messages are transcript records and are distinct from lower-level events.</p></section>
+
+      <section id="events"><h2>Session events</h2><pre><code>GET /sessions/:sessionId/events?afterSeq=42&amp;limit=100</code></pre><p>Events are ordered records of state changes and progress. <code>afterSeq</code> returns events with <code>seq &gt; afterSeq</code>.</p></section>
+
+      <section id="conversation"><h2>Conversation</h2><pre><code>GET /conversations/:sessionId
+POST /conversations/:sessionId/messages
+POST /conversations/:sessionId/stop</code></pre><p>Read is side-effect free. Send may create/queue a turn and trigger AI/agent work.</p></section>
+
+      <section id="sse"><h2>Session SSE event stream</h2><pre><code>GET /sessions/:sessionId/events/stream?afterSeq=42
+Accept: text/event-stream</code></pre><p>The SSE stream is one-way provider-to-Control-Center. Resume uses <code>afterSeq</code> or <code>Last-Event-ID</code>.</p><pre><code>event: session.event
+id: 43
+data: {"seq":43,"type":"turn.started","payload":{"turnId":"turn_123"}}</code></pre></section>
+
+      <section id="taxonomy"><h2>Event taxonomy</h2><table><thead><tr><th>Category</th><th>Examples</th></tr></thead><tbody>
+        <tr><td>Run</td><td><code>run.started</code>, <code>run.completed</code>, <code>run.failed</code>, <code>run.cancelled</code></td></tr>
+        <tr><td>Turn</td><td><code>turn.started</code>, <code>turn.completed</code>, <code>turn.failed</code>, <code>turn.stopped</code></td></tr>
+        <tr><td>Message</td><td><code>message.created</code>, <code>message.delta</code>, <code>message.completed</code></td></tr>
+        <tr><td>Tool/progress</td><td><code>tool.started</code>, <code>tool.completed</code>, <code>tool.failed</code></td></tr>
+        <tr><td>Session</td><td><code>session.updated</code>, <code>session.replay_complete</code></td></tr>
+      </tbody></table></section>
+
+      <section id="out-of-scope"><h2>Explicitly not Work Plane baseline</h2><ul>
+        <li>Agent files editing</li><li>Credential installation</li><li>Model config</li><li>Skills/extensions management</li><li>Provider filesystem allowlist</li><li>Owner audit</li><li>Provider runtime policy changes</li>
+      </ul><p>Current Control Center Agent files UI is transitional owner-plane functionality and should eventually move to Pi Agent Runtime Owner Console.</p></section>
+    </article>
+  </main>
+</body>
+</html>
