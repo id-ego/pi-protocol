@@ -215,3 +215,467 @@ export function isProviderErrorEnvelope(value: unknown): value is ProviderErrorE
 export function checkSchema<T extends TSchema>(schema: T, value: unknown): value is Static<T> {
   return Value.Check(schema, value);
 }
+
+// Transitional Work Plane and pi-works BFF contract types.
+// These are kept in pi-protocol so pi-os and pi-works can split without a legacy shared package.
+export type PiApiHealth = { ok: true };
+
+export type PiApiNode = {
+  id: string;
+  name: string;
+  baseUrl: string;
+};
+
+export type PiApiNodeCredentialSummary = {
+  configured: true;
+  providerApiKeyFingerprint: string;
+  keyVersion: string;
+  rotatedAt?: string | Date | null;
+};
+
+export type PiApiNodeProviderSummary = {
+  compatibility: ProviderCompatibilityStatus;
+  checkedAt?: string | Date | null;
+  error?: string | null;
+  health?: ProviderHealth | null;
+  profile?: ProviderProfile | null;
+};
+
+export type PiApiNodeDiagnostic = PiApiNode & {
+  credentialConfigured: boolean;
+  credentialAvailable: boolean | null;
+  credential: PiApiNodeCredentialSummary | null;
+  configSource: 'db';
+  capabilities: string[];
+  managementMode: 'read-only' | 'read-write';
+  diagnostics: string[];
+  health?: {
+    status: 'unknown' | 'healthy' | 'unhealthy';
+    checkedAt?: string | Date | null;
+    error?: string | null;
+  };
+  provider?: PiApiNodeProviderSummary;
+};
+
+export type PiApiError = {
+  error: string;
+};
+
+export type SessionStatus = 'queued' | 'active' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
+
+export type TurnStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'interrupted';
+
+export type MessageRole = 'user' | 'assistant';
+
+export type ConversationMessageRole = MessageRole | 'system';
+
+export type MessageStatus = 'streaming' | 'complete';
+
+export type ConversationMessageStatus = MessageStatus | 'pending' | 'error';
+
+export type ConversationStatus = 'idle' | 'running' | 'stopping' | 'completed' | 'failed' | 'interrupted';
+
+export type ConversationQueuePosition = 'started' | 'queued';
+
+export type ConversationInputDurability = 'memory';
+
+export type SessionListQuery = {
+  status?: SessionStatus | string;
+  limit?: number;
+};
+
+export type SessionEventsQuery = {
+  afterSeq?: number;
+  limit?: number;
+};
+
+export type Session = {
+  id: string;
+  status: SessionStatus;
+  title: string | null;
+  cwd: string;
+  agentDir: string;
+  sessionFile: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  error: string | null;
+};
+
+export type SessionListResponse = {
+  sessions: Session[];
+  nextCursor: string | null;
+};
+
+export type SessionMessage = {
+  id: string;
+  sessionId: string;
+  turnId: string | null;
+  role: MessageRole;
+  status: MessageStatus;
+  content: string;
+  sourceEventSeq: number | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+};
+
+export type SessionMessagesResponse = {
+  messages: SessionMessage[];
+};
+
+export type SessionTurn = {
+  id: string;
+  sessionId: string;
+  status: TurnStatus;
+  kind: string;
+  input: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  error: string | null;
+};
+
+export type SessionTurnsResponse = {
+  turns: SessionTurn[];
+};
+
+export type SessionEvent = {
+  id: number;
+  sessionId: string;
+  turnId: string | null;
+  seq: number;
+  type: string;
+  payload: unknown;
+  payloadBytes: number;
+  createdAt: string;
+};
+
+export type SessionEventsResponse = {
+  events: SessionEvent[];
+  nextSeq: number | null;
+};
+
+export type SessionLease = {
+  leaseId: string;
+  sessionId: string;
+  holder: string | null;
+  status: 'active' | 'released' | 'expired';
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+  releasedAt: string | null;
+};
+
+export type SessionLeaseStatusResponse = {
+  lease: SessionLease | null;
+};
+
+export type SessionLeaseConflictError = PiApiError & {
+  lease: SessionLease;
+};
+
+export type SessionLeaseAcquireRequest = {
+  holder?: string;
+  ttlMs?: number;
+};
+
+export type SessionLeaseRenewRequest = {
+  ttlMs?: number;
+};
+
+export type CreateRunRequest = {
+  input: string;
+  prefix?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type SessionWriteRequest = {
+  input: string;
+  leaseId?: string;
+  prefix?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type SessionControlRequest = {
+  input: string;
+  leaseId?: string;
+};
+
+export type SessionAbortRequest = {
+  leaseId?: string;
+};
+
+export type SessionControlOk = { ok: true };
+
+export type ConversationRuntimeState = {
+  attached: boolean;
+  streaming: boolean;
+  canSend: boolean;
+  canStop: boolean;
+  queueDepth: number;
+};
+
+export type Conversation = {
+  id: string;
+  status: ConversationStatus;
+  title: string | null;
+  cwd: string;
+  createdAt: string;
+  updatedAt: string;
+  lastMessageAt: string | null;
+  runtime: ConversationRuntimeState;
+};
+
+export type ConversationMessage = {
+  id: string;
+  sessionId: string;
+  role: ConversationMessageRole;
+  status: ConversationMessageStatus;
+  content: string;
+  clientMessageId?: string;
+  sourceEventSeq: number | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  error: string | null;
+};
+
+export type ConversationMessagesResponse = {
+  messages: ConversationMessage[];
+};
+
+export type SendConversationMessageRequest = {
+  content: string;
+  clientMessageId?: string;
+};
+
+export type SendConversationMessageResponse = {
+  accepted: true;
+  clientMessageId?: string;
+  position: ConversationQueuePosition;
+  queueDepth: number;
+  durability: ConversationInputDurability;
+};
+
+export type StopConversationResponse = {
+  ok: true;
+  stoppedCurrent: boolean;
+  cancelledQueued: number;
+};
+
+export type ConversationReadyEvent = {
+  type: 'ready';
+  sessionId: string;
+  seq: number;
+  status: ConversationStatus;
+  queueDepth: number;
+};
+
+export type ConversationInputAcceptedEvent = {
+  type: 'input.accepted';
+  clientMessageId?: string;
+  queueDepth: number;
+  durability: ConversationInputDurability;
+};
+
+export type ConversationMessageConfirmedEvent = {
+  type: 'message.confirmed';
+  seq: number;
+  clientMessageId?: string;
+  message: ConversationMessage;
+};
+
+export type ConversationMessageDeltaEvent = {
+  type: 'message.delta';
+  seq: number;
+  messageId: string;
+  delta: string;
+};
+
+export type ConversationMessageCompletedEvent = {
+  type: 'message.completed';
+  seq: number;
+  message: ConversationMessage;
+};
+
+export type ConversationInputFailedEvent = {
+  type: 'input.failed';
+  clientMessageId?: string;
+  error: string;
+};
+
+export type ConversationStatusChangedEvent = {
+  type: 'status.changed';
+  seq: number;
+  status: ConversationStatus;
+};
+
+export type ConversationQueueChangedEvent = {
+  type: 'queue.changed';
+  queueDepth: number;
+};
+
+export type ConversationErrorEvent = {
+  type: 'error';
+  seq?: number;
+  error: string;
+};
+
+export type ConversationReplayCompleteEvent = {
+  type: 'replay.complete';
+  sessionId: string;
+  afterSeq: number | null;
+};
+
+export type ConversationServerEvent =
+  | ConversationReadyEvent
+  | ConversationInputAcceptedEvent
+  | ConversationMessageConfirmedEvent
+  | ConversationMessageDeltaEvent
+  | ConversationMessageCompletedEvent
+  | ConversationInputFailedEvent
+  | ConversationStatusChangedEvent
+  | ConversationQueueChangedEvent
+  | ConversationErrorEvent
+  | ConversationReplayCompleteEvent;
+
+export type AgentFileSummary = {
+  path: string;
+  hash: string | null;
+  size: number;
+  updatedAt: string | null;
+};
+
+export type AgentFileListResponse = {
+  files: AgentFileSummary[];
+};
+
+export type AgentFileDirectoryEntry = {
+  path: string;
+  name: string;
+  type: 'file' | 'directory';
+  hash: string | null;
+  size: number;
+  updatedAt: string | null;
+};
+
+export type AgentFileDirectoryResponse = {
+  path: string;
+  entries: AgentFileDirectoryEntry[];
+};
+
+export type AgentFile = {
+  path: string;
+  content: string;
+  hash: string;
+  size: number;
+  updatedAt: string | null;
+};
+
+export type AgentFileWriteRequest = {
+  path: string;
+  content: string;
+  expectedHash: string | null;
+};
+
+export type AgentFileWriteResult = {
+  path: string;
+  hash: string;
+  previousHash: string | null;
+};
+
+export type AgentFileAuditEntry = {
+  id: string;
+  path: string;
+  operation: string;
+  previousHash: string | null;
+  nextHash: string | null;
+  createdAt: string;
+};
+
+export type AgentFileAuditResponse = {
+  audits: AgentFileAuditEntry[];
+};
+
+export type RunStatus = {
+  id: string;
+  status: TurnStatus;
+  createdAt: string;
+  updatedAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  sessionId: string | null;
+  sessionFile: string | null;
+  error: string | null;
+};
+
+export type ProjectionStreamKind = 'projection';
+
+export type SessionStatusProjectionEvent = {
+  type: 'session.status';
+  sessionId: string;
+  status: SessionStatus;
+  seq?: number;
+};
+
+export type TurnStatusProjectionEvent = {
+  type: 'turn.status';
+  sessionId: string;
+  turnId: string;
+  status: TurnStatus;
+  seq?: number;
+};
+
+export type MessageUpsertProjectionEvent = {
+  type: 'message.upsert';
+  sessionId: string;
+  turnId: string;
+  seq: number;
+  message: SessionMessage;
+};
+
+export type MessageCompleteProjectionEvent = {
+  type: 'message.complete';
+  sessionId: string;
+  turnId: string;
+  seq: number;
+  message: SessionMessage;
+};
+
+export type SessionProjectionReplayCompleteEvent = {
+  type: 'session.replay_complete';
+  sessionId: string;
+  stream: ProjectionStreamKind;
+};
+
+export type SessionProjectionErrorEvent = {
+  type: 'error';
+  error: string;
+  sessionId?: string;
+};
+
+export type SessionProjectionEvent =
+  | SessionStatusProjectionEvent
+  | TurnStatusProjectionEvent
+  | MessageUpsertProjectionEvent
+  | MessageCompleteProjectionEvent
+  | SessionProjectionReplayCompleteEvent
+  | SessionProjectionErrorEvent;
+
+export type SessionDashboardSummary = Session & {
+  latestTurnStatus: TurnStatus | null;
+  lastMessagePreview: string | null;
+  turnCount: number | null;
+  messageCount: number | null;
+  activity: 'queued' | 'active' | 'idle';
+};
+
+export type SessionDashboardListResponse = {
+  sessions: SessionDashboardSummary[];
+  nextCursor: string | null;
+};

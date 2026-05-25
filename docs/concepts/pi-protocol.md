@@ -387,7 +387,7 @@ The package should provide:
 - profile/health/error/run/session/conversation/event schemas
 - validation/compatibility helpers where useful
 
-The existing `packages/legacy-protocol` can remain during migration.
+Legacy shared Work Plane and pi-works BFF type exports have been folded into `packages/pi-protocol` so the monorepo can split without a transitional shared protocol package.
 
 ## Initial implementation implications
 
