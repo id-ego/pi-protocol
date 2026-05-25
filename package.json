@@ -1,13 +1,31 @@
 {
   "name": "@anakonn/pi-protocol",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "private": false,
-  "description": "pi-protocol schemas, types, and provider discovery constants.",
+  "description": "Public pi-protocol schemas, types, SDK helpers, and CLI contract checks for pi-os providers and pi-works consumers.",
+  "license": "MIT",
+  "keywords": [
+    "pi-protocol",
+    "protocol",
+    "sdk",
+    "typebox",
+    "sse",
+    "provider",
+    "contract-testing"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/id-ego/pi-protocol.git"
+  },
+  "homepage": "https://github.com/id-ego/pi-protocol#readme",
+  "bugs": {
+    "url": "https://github.com/id-ego/pi-protocol/issues"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "pi-protocol": "./dist/cli.js"
+    "pi-protocol": "dist/cli.js"
   },
   "exports": {
     ".": {
@@ -18,9 +36,14 @@
   "files": [
     "dist",
     "README.md",
+    "LICENSE",
     "docs/specs/pi-provider-v1.md",
     "docs/specs/pi-provider-v1.html"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
