@@ -286,9 +286,20 @@ export const ProviderCompatibilityStatusSchema = Type.Union([
 ]);
 export type ProviderCompatibilityStatus = Static<typeof ProviderCompatibilityStatusSchema>;
 
+export type ProviderCompatibilityReport = {
+  status: ProviderCompatibilityStatus;
+  protocol: ProviderProtocol | null;
+  checkedAt: string;
+  reason: string | null;
+};
+
 export type SchemaValidationResult<T extends TSchema> =
   | { ok: true; value: Static<T> }
   | { ok: false; errors: string[] };
+
+export type ProviderDiscoveryParseResult =
+  | { ok: true; profile: ProviderProfile; compatibility: ProviderCompatibilityReport }
+  | { ok: false; profile: null; compatibility: ProviderCompatibilityReport; errors: string[] };
 
 export class PiProtocolValidationError extends Error {
   readonly errors: string[];
@@ -328,6 +339,99 @@ export function assertSchema<T extends TSchema>(schema: T, value: unknown): Stat
 
 export function createProviderProtocol(): ProviderProtocol {
   return { name: PI_PROTOCOL_NAME, version: PI_PROTOCOL_VERSION };
+}
+
+export function providerDiscoveryUrl(baseUrl: string | URL): URL {
+  return providerUrl(baseUrl, PI_PROVIDER_DISCOVERY_PATH);
+}
+
+export function providerUrl(baseUrl: string | URL, path: string): URL {
+  const url = new URL(baseUrl);
+  const normalizedBase = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  url.pathname = `${normalizedBase}${normalizedPath}`;
+  url.search = '';
+  url.hash = '';
+  return url;
+}
+
+export function classifyProviderProtocol(value: unknown, checkedAt = new Date().toISOString()): ProviderCompatibilityReport {
+  const result = validateSchema(ProviderProtocolSchema, value);
+  if (result.ok) {
+    return { status: 'compatible', protocol: result.value, checkedAt, reason: null };
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    const record = value as Record<string, unknown>;
+    const name = record.name;
+    const version = record.version;
+    if (name === PI_PROTOCOL_NAME && typeof version === 'string') {
+      return {
+        status: 'unsupported',
+        protocol: null,
+        checkedAt,
+        reason: `unsupported protocol version: ${version}`,
+      };
+    }
+    if (typeof name === 'string') {
+      return { status: 'unsupported', protocol: null, checkedAt, reason: `unsupported protocol name: ${name}` };
+    }
+  }
+
+  return { status: 'unknown', protocol: null, checkedAt, reason: result.errors.join('; ') };
+}
+
+export function classifyProviderProfile(value: unknown, checkedAt = new Date().toISOString()): ProviderCompatibilityReport {
+  if (typeof value !== 'object' || value === null || !('protocol' in value)) {
+    return { status: 'unknown', protocol: null, checkedAt, reason: 'missing protocol metadata' };
+  }
+
+  return classifyProviderProtocol((value as { protocol: unknown }).protocol, checkedAt);
+}
+
+export function unreachableProviderCompatibility(
+  reason: string,
+  checkedAt = new Date().toISOString(),
+): ProviderCompatibilityReport {
+  return { status: 'unreachable', protocol: null, checkedAt, reason };
+}
+
+export function parseProviderProfile(value: unknown, checkedAt = new Date().toISOString()): ProviderDiscoveryParseResult {
+  const result = validateSchema(ProviderProfileSchema, value);
+  if (result.ok) {
+    return {
+      ok: true,
+      profile: result.value,
+      compatibility: { status: 'compatible', protocol: result.value.protocol, checkedAt, reason: null },
+    };
+  }
+
+  return {
+    ok: false,
+    profile: null,
+    compatibility: classifyProviderProfile(value, checkedAt),
+    errors: result.errors,
+  };
+}
+
+export function parseProviderHealth(value: unknown): SchemaValidationResult<typeof ProviderHealthSchema> {
+  return validateSchema(ProviderHealthSchema, value);
+}
+
+export function parseProviderErrorEnvelope(value: unknown): SchemaValidationResult<typeof ProviderErrorEnvelopeSchema> {
+  return validateSchema(ProviderErrorEnvelopeSchema, value);
+}
+
+export function parseProviderRun(value: unknown): SchemaValidationResult<typeof ProviderRunSchema> {
+  return validateSchema(ProviderRunSchema, value);
+}
+
+export function parseProviderSession(value: unknown): SchemaValidationResult<typeof ProviderSessionSchema> {
+  return validateSchema(ProviderSessionSchema, value);
+}
+
+export function parseProviderConversation(value: unknown): SchemaValidationResult<typeof ProviderConversationSchema> {
+  return validateSchema(ProviderConversationSchema, value);
 }
 
 export function createProviderProfile(input: {
