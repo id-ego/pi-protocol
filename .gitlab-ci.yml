@@ -25,4 +25,4 @@ publish:npm:
     - bun run smoke:boundary
     - bun run pack:check
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
-    - bun publish --access public
+    - bunx npm publish --access public
