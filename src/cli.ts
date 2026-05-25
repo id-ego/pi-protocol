@@ -2,6 +2,10 @@
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import {
+  PI_PROVIDER_DISCOVERY_PATH,
+  PI_PROVIDER_HEALTH_PATH,
+  PI_PROVIDER_PROFILE_PATH,
+  PI_PROVIDER_RUNS_PATH,
   ProviderConversationSchema,
   ProviderConversationSendResponseSchema,
   ProviderConversationStopResponseSchema,
@@ -31,6 +35,15 @@ import {
   createProviderSessionMessagesResponse,
   createProviderSessionReplayCompleteEvent,
   getSchemaErrors,
+  providerConversationMessagesPath,
+  providerConversationPath,
+  providerConversationStopPath,
+  providerRunCancelPath,
+  providerRunPath,
+  providerSessionEventsPath,
+  providerSessionEventsStreamPath,
+  providerSessionMessagesPath,
+  providerSessionPath,
   type ProviderConversation,
   type ProviderConversationSendResponse,
   type ProviderConversationStopResponse,
@@ -59,6 +72,25 @@ type ValidationCheck = {
 type NamedSchema = {
   name: string;
   schema: TSchema;
+};
+
+type InspectCheck = {
+  name: string;
+  method: string;
+  path: string;
+  ok: boolean;
+  status: number | null;
+  schema: string | null;
+  errors: string[];
+  skipped?: boolean;
+};
+
+type InspectOptions = {
+  baseUrl: string;
+  json: boolean;
+  createRun: boolean;
+  token: string | null;
+  input: string;
 };
 
 const SCHEMAS: NamedSchema[] = [
@@ -204,15 +236,17 @@ function printUsage(): void {
 Usage:
   pi-protocol init-provider [directory]
   pi-protocol validate <path> [--json]
+  pi-protocol inspect-provider <baseUrl> [--json] [--token <token>] [--create-run] [--input <text>]
   pi-protocol help
 
 Commands:
   init-provider   Generate framework-neutral provider fixtures and a README.
   validate        Validate JSON fixtures against known pi-protocol schemas.
+  inspect-provider Check a live provider's mandatory interface surface.
 `);
 }
 
-function main(argv: string[]): number {
+async function main(argv: string[]): Promise<number> {
   const [command, ...args] = argv;
   if (!command || command === 'help' || command === '--help' || command === '-h') {
     printUsage();
@@ -230,6 +264,10 @@ function main(argv: string[]): number {
       return 2;
     }
     return validateTarget(target, args.includes('--json'));
+  }
+
+  if (command === 'inspect-provider') {
+    return inspectProvider(parseInspectOptions(args));
   }
 
   console.error(`Unknown command: ${command}`);
@@ -338,8 +376,177 @@ function writeJson(path: string, value: unknown): void {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
+function parseInspectOptions(args: string[]): InspectOptions {
+  const baseUrl = args.find((arg) => !arg.startsWith('-'));
+  if (!baseUrl) {
+    throw new Error('Missing baseUrl: pi-protocol inspect-provider <baseUrl>');
+  }
+
+  return {
+    baseUrl,
+    json: args.includes('--json'),
+    createRun: args.includes('--create-run'),
+    token: readOption(args, '--token') ?? process.env.PI_PROVIDER_TOKEN ?? null,
+    input: readOption(args, '--input') ?? 'pi-protocol full contract smoke test',
+  };
+}
+
+function readOption(args: string[], flag: string): string | null {
+  const index = args.indexOf(flag);
+  if (index === -1) return null;
+  return args[index + 1] ?? null;
+}
+
+async function inspectProvider(options: InspectOptions): Promise<number> {
+  const checks: InspectCheck[] = [];
+  const authHeaders: Record<string, string> = options.token ? { Authorization: `Bearer ${options.token}` } : {};
+  let runId: string | null = null;
+  let sessionId: string | null = null;
+
+  await checkJson(checks, options, 'discovery', 'GET', PI_PROVIDER_DISCOVERY_PATH, ProviderProfileSchema, 'ProviderProfile', authHeaders);
+  await checkJson(checks, options, 'profile', 'GET', PI_PROVIDER_PROFILE_PATH, ProviderProfileSchema, 'ProviderProfile', authHeaders);
+  await checkJson(checks, options, 'health', 'GET', PI_PROVIDER_HEALTH_PATH, ProviderHealthSchema, 'ProviderHealth', authHeaders);
+
+  if (!options.createRun) {
+    addSkipped(checks, 'create run', 'POST', PI_PROVIDER_RUNS_PATH, 'pass --create-run to run side-effect checks');
+  } else {
+    const created = await checkJson(
+      checks,
+      options,
+      'create run',
+      'POST',
+      PI_PROVIDER_RUNS_PATH,
+      ProviderRunSchema,
+      'ProviderRun',
+      { ...authHeaders, 'Content-Type': 'application/json' },
+      { input: options.input, context: { source: 'pi-protocol.inspect-provider' } },
+    );
+    if (created.ok && typeof created.value === 'object' && created.value !== null) {
+      const run = created.value as { id?: unknown; sessionId?: unknown };
+      runId = typeof run.id === 'string' ? run.id : null;
+      sessionId = typeof run.sessionId === 'string' ? run.sessionId : null;
+    }
+
+    if (runId) {
+      await checkJson(checks, options, 'read run', 'GET', providerRunPath(runId), ProviderRunSchema, 'ProviderRun', authHeaders);
+      await checkJson(checks, options, 'cancel run', 'POST', providerRunCancelPath(runId), ProviderRunSchema, 'ProviderRun', authHeaders);
+    } else {
+      addSkipped(checks, 'read run', 'GET', '/runs/:runId', 'create run did not return run id');
+      addSkipped(checks, 'cancel run', 'POST', '/runs/:runId/cancel', 'create run did not return run id');
+    }
+
+    await checkJson(checks, options, 'list sessions', 'GET', '/sessions', ProviderSessionListResponseSchema, 'ProviderSessionListResponse', authHeaders);
+
+    if (sessionId) {
+      await checkJson(checks, options, 'read session', 'GET', providerSessionPath(sessionId), ProviderSessionSchema, 'ProviderSession', authHeaders);
+      await checkJson(checks, options, 'session messages', 'GET', providerSessionMessagesPath(sessionId), ProviderSessionMessagesResponseSchema, 'ProviderSessionMessagesResponse', authHeaders);
+      await checkJson(checks, options, 'session events', 'GET', providerSessionEventsPath(sessionId), ProviderSessionEventsResponseSchema, 'ProviderSessionEventsResponse', authHeaders);
+      await checkJson(checks, options, 'read conversation', 'GET', providerConversationPath(sessionId), ProviderConversationSchema, 'ProviderConversation', authHeaders);
+      await checkJson(
+        checks,
+        options,
+        'send conversation message',
+        'POST',
+        providerConversationMessagesPath(sessionId),
+        ProviderConversationSendResponseSchema,
+        'ProviderConversationSendResponse',
+        { ...authHeaders, 'Content-Type': 'application/json' },
+        { content: options.input },
+      );
+      await checkJson(checks, options, 'stop conversation', 'POST', providerConversationStopPath(sessionId), ProviderConversationStopResponseSchema, 'ProviderConversationStopResponse', authHeaders);
+      await checkSse(checks, options, 'session event stream', providerSessionEventsStreamPath(sessionId), authHeaders);
+    } else {
+      for (const [name, method, path] of [
+        ['read session', 'GET', '/sessions/:sessionId'],
+        ['session messages', 'GET', '/sessions/:sessionId/messages'],
+        ['session events', 'GET', '/sessions/:sessionId/events'],
+        ['read conversation', 'GET', '/conversations/:sessionId'],
+        ['send conversation message', 'POST', '/conversations/:sessionId/messages'],
+        ['stop conversation', 'POST', '/conversations/:sessionId/stop'],
+        ['session event stream', 'GET', '/sessions/:sessionId/events/stream'],
+      ] as const) {
+        addSkipped(checks, name, method, path, 'create run did not return session id');
+      }
+    }
+  }
+
+  const failed = checks.filter((check) => !check.ok && !check.skipped);
+  if (options.json) {
+    console.log(JSON.stringify({ ok: failed.length === 0, checks }, null, 2));
+  } else {
+    for (const check of checks) {
+      const mark = check.skipped ? '-' : check.ok ? '✓' : '✗';
+      console.log(`${mark} ${check.method} ${check.path} ${check.name}${check.status ? ` (${check.status})` : ''}`);
+      for (const error of check.errors) console.log(`  - ${error}`);
+    }
+    console.log(failed.length === 0 ? `Provider contract checks passed (${checks.length} checks)` : `Provider contract checks failed (${failed.length}/${checks.length})`);
+  }
+  return failed.length === 0 ? 0 : 1;
+}
+
+async function checkJson(
+  checks: InspectCheck[],
+  options: InspectOptions,
+  name: string,
+  method: string,
+  path: string,
+  schema: TSchema,
+  schemaName: string,
+  headers: Record<string, string>,
+  body?: unknown,
+): Promise<{ ok: boolean; value: unknown }> {
+  try {
+    const response = await fetch(new URL(path, options.baseUrl), {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const value = await response.json() as unknown;
+    const schemaOk = Value.Check(schema, value);
+    checks.push({
+      name,
+      method,
+      path,
+      ok: response.ok && schemaOk,
+      status: response.status,
+      schema: schemaName,
+      errors: response.ok ? (schemaOk ? [] : getSchemaErrors(schema, value)) : [`HTTP ${response.status}`],
+    });
+    return { ok: response.ok && schemaOk, value };
+  } catch (error) {
+    checks.push({ name, method, path, ok: false, status: null, schema: schemaName, errors: [redact(String(error), options.token)] });
+    return { ok: false, value: null };
+  }
+}
+
+async function checkSse(
+  checks: InspectCheck[],
+  options: InspectOptions,
+  name: string,
+  path: string,
+  headers: Record<string, string>,
+): Promise<void> {
+  try {
+    const response = await fetch(new URL(path, options.baseUrl), { method: 'GET', headers: { ...headers, Accept: 'text/event-stream' } });
+    const contentType = response.headers.get('content-type') ?? '';
+    const ok = response.ok && contentType.includes('text/event-stream');
+    await response.body?.cancel();
+    checks.push({ name, method: 'GET', path, ok, status: response.status, schema: 'text/event-stream', errors: ok ? [] : [`expected text/event-stream, got ${contentType || 'unknown'}`] });
+  } catch (error) {
+    checks.push({ name, method: 'GET', path, ok: false, status: null, schema: 'text/event-stream', errors: [redact(String(error), options.token)] });
+  }
+}
+
+function addSkipped(checks: InspectCheck[], name: string, method: string, path: string, reason: string): void {
+  checks.push({ name, method, path, ok: true, status: null, schema: null, errors: [reason], skipped: true });
+}
+
+function redact(value: string, token: string | null): string {
+  return token ? value.split(token).join('[REDACTED]') : value;
+}
+
 try {
-  process.exitCode = main(process.argv.slice(2));
+  process.exitCode = await main(process.argv.slice(2));
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
