@@ -1,6 +1,6 @@
 # pi-protocol
 
-Updated: 2026-05-25
+Updated: 1.0.0-25
 
 ## Purpose
 
@@ -12,14 +12,14 @@ many pi-os providers <-> pi-protocol <-> many pi-works instances
 
 The protocol defines how an employer-side pi-works discovers, verifies, hires, uses, and monitors an agent provider without managing the provider internals.
 
-Compatibility note: the external baseline string remains `pi-provider-agent-v0`, and v0 HTTP paths/service metadata still include `pi-api` compatibility names until a later protocol/version rename.
+Compatibility note: the external version string remains `pi-provider-v1`, and v0 HTTP paths/service metadata still include `pi-api` compatibility names until a later protocol/version rename.
 
 ## Scope
 
 In scope:
 
 - provider profile/discovery
-- protocol version and baseline
+- protocol version and version
 - health/readiness
 - provider API authentication behavior
 - standard error envelope
@@ -44,17 +44,17 @@ Out of scope:
 
 ## Baseline principle
 
-`pi-provider-agent-v0` does not use optional protocol endpoint capabilities.
+`pi-provider-v1` does not use optional protocol endpoint capabilities.
 
-If a provider declares compatibility with a protocol baseline, every communication interface in that baseline is mandatory.
+If a provider declares compatibility with a protocol version, every communication interface in that version is mandatory.
 
 Important rule:
 
-> Protocol baseline interfaces are mandatory. Capabilities/profile data describe the work an agent can perform, not which baseline protocol endpoints it implements.
+> Protocol version interfaces are mandatory. Capabilities/profile data describe the work an agent can perform, not which version protocol endpoints it implements.
 
 This keeps pi-works implementation simple and avoids per-provider endpoint branching.
 
-## Proposed baseline: pi-provider-agent-v0
+## Proposed version: pi-provider-v1
 
 Required communication categories:
 
@@ -115,7 +115,7 @@ Skills are always public in v0. There is no `visibility`, `private`, or `public`
 Profile endpoints:
 
 ```http
-GET /.well-known/pi-api/provider
+GET /.well-known/pi-provider
 GET /provider/profile
 ```
 
@@ -127,8 +127,8 @@ Candidate response shape:
 {
   "protocol": {
     "name": "pi-provider",
-    "version": "2026-05",
-    "baseline": "pi-provider-agent-v0"
+    "version": "1.0.0",
+    "version": "pi-provider-v1"
   },
   "profile": {
     "id": "ego-agent",
@@ -171,8 +171,8 @@ Candidate response:
   "version": "0.4.0",
   "protocol": {
     "name": "pi-provider",
-    "version": "2026-05",
-    "baseline": "pi-provider-agent-v0"
+    "version": "1.0.0",
+    "version": "pi-provider-v1"
   },
   "status": {
     "activeRuns": 1,
@@ -192,7 +192,7 @@ Authorization: Bearer <provider-access-token>
 
 Provider access tokens authorize the pi-works to call provider Work Plane APIs. They are distinct from project work credentials installed by the agent owner.
 
-Future versions may add scopes, signed requests, mTLS, or OAuth-style flows, but v0 should keep the baseline simple.
+Future versions may add scopes, signed requests, mTLS, or OAuth-style flows, but v0 should keep the version simple.
 
 ## Standard error envelope
 
@@ -291,7 +291,7 @@ Conversation semantics should include ordered messages, provider/assistant repli
 
 ## Communication direction
 
-`pi-provider-agent-v0` separates commands/queries from realtime reporting.
+`pi-provider-v1` separates commands/queries from realtime reporting.
 
 ```text
 pi-works -> Provider
@@ -302,7 +302,7 @@ Provider -> pi-works
   SSE one-way event stream
 ```
 
-WebSocket duplex channels are not part of the v0 baseline. They may be introduced later for terminal, interactive shell, voice, collaborative editing, or other low-latency bidirectional extensions.
+WebSocket duplex channels are not part of the v0 version. They may be introduced later for terminal, interactive shell, voice, collaborative editing, or other low-latency bidirectional extensions.
 
 ## Session-level SSE event stream
 
@@ -341,7 +341,7 @@ Work artifacts are distinct from provider internal files.
 
 ## Owner management is not protocol work surface
 
-The following are not baseline Work Plane endpoints:
+The following are not version Work Plane endpoints:
 
 - edit agent files
 - install credentials
@@ -368,7 +368,7 @@ Compatibility should consider:
 
 - protocol name
 - protocol version
-- baseline
+- version
 - required endpoint behavior
 - auth success/failure
 
@@ -405,7 +405,7 @@ Before splitting repositories/products, the current monorepo should harden the p
 
 ## Related documents
 
-- [pi-provider-agent-v0 Interface Definition](../specs/pi-provider-agent-v0.md)
+- [pi-provider-v1 Interface Definition](../specs/pi-provider-v1.md)
 - [Pi Provider Ecosystem](./pi-provider-ecosystem.md)
 - [pi-os](./pi-os.md)
 - [pi-works](./pi-works.md)

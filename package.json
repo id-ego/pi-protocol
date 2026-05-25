@@ -1,0 +1,34 @@
+{
+  "name": "@anakonn/pi-protocol",
+  "version": "1.0.0",
+  "type": "module",
+  "private": false,
+  "description": "pi-protocol schemas, types, and provider discovery constants.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "docs/specs/pi-provider-v1.md",
+    "docs/specs/pi-provider-v1.html"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "pack:check": "bun pm pack --dry-run",
+    "smoke:boundary": "bun scripts/boundary-smoke.ts"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.49"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  }
+}

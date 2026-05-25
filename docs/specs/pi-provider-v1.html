@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>pi-provider-agent-v0 Interface Definition</title>
+  <title>pi-provider-v1 Interface Definition</title>
   <style>
     :root {
       color-scheme: light;
@@ -57,8 +57,8 @@
 </head>
 <body>
   <header>
-    <h1>pi-provider-agent-v0</h1>
-    <p>Light-mode interface definition for the pi-protocol Work Plane. Markdown source of truth: <code>docs/specs/pi-provider-agent-v0.md</code>.</p>
+    <h1>pi-provider-v1</h1>
+    <p>Light-mode interface definition for the pi-protocol Work Plane. Markdown source of truth: <code>docs/specs/pi-provider-v1.md</code>.</p>
   </header>
   <main>
     <nav aria-label="Table of contents">
@@ -77,13 +77,13 @@
       <a href="#conversation">Conversation</a>
       <a href="#sse">SSE stream</a>
       <a href="#taxonomy">Event taxonomy</a>
-      <a href="#out-of-scope">Not baseline</a>
+      <a href="#out-of-scope">Not version</a>
     </nav>
     <article>
       <section id="rules">
         <h2>Core rules</h2>
         <div class="callout">
-          <p><strong>Protocol baseline interfaces are mandatory.</strong> A provider that declares <code>pi-provider-agent-v0</code> compatibility must implement every interface in this document.</p>
+          <p><strong>Protocol version interfaces are mandatory.</strong> A provider that declares <code>pi-provider-v1</code> compatibility must implement every interface in this document.</p>
           <p><strong>Capabilities are not endpoint toggles.</strong> Provider profile and installed skills describe what work the agent can perform.</p>
           <p><strong>pi-works does not manage provider internals.</strong> Agent files and credential/model/skill configuration belong to the pi-os Owner Plane.</p>
         </div>
@@ -93,10 +93,10 @@
         <h2>Protocol constants</h2>
         <table><tbody>
           <tr><th>Protocol name</th><td><code>pi-provider</code></td></tr>
-          <tr><th>Baseline</th><td><code>pi-provider-agent-v0</code></td></tr>
-          <tr><th>Version format</th><td>Date-like string, e.g. <code>2026-05</code></td></tr>
+          <tr><th>Baseline</th><td><code>pi-provider-v1</code></td></tr>
+          <tr><th>Version format</th><td>Date-like string, e.g. <code>1.0.0</code></td></tr>
           <tr><th>Realtime transport</th><td>SSE</td></tr>
-          <tr><th>Duplex WebSocket</th><td>Not part of v0 baseline</td></tr>
+          <tr><th>Duplex WebSocket</th><td>Not part of v0 version</td></tr>
         </tbody></table>
       </section>
 
@@ -105,7 +105,7 @@
         <table>
           <thead><tr><th>Area</th><th>Method/path</th><th>Purpose</th></tr></thead>
           <tbody>
-            <tr><td>Provider Profile</td><td><span class="endpoint">GET /.well-known/pi-api/provider</span></td><td>Discovery endpoint for registering/verifying providers.</td></tr>
+            <tr><td>Provider Profile</td><td><span class="endpoint">GET /.well-known/pi-provider</span></td><td>Discovery endpoint for registering/verifying providers.</td></tr>
             <tr><td>Provider Profile</td><td><span class="endpoint">GET /provider/profile</span></td><td>Explicit profile API endpoint.</td></tr>
             <tr><td>Health</td><td><span class="endpoint">GET /health</span></td><td>Liveness/readiness and protocol metadata.</td></tr>
             <tr><td>Runs</td><td><span class="endpoint">POST /runs</span></td><td>Create assigned work.</td></tr>
@@ -135,7 +135,7 @@
 }</code></pre></section>
 
       <section id="profile"><h2>Provider Profile</h2><p>Source: <code>~/.pi/agent/PROFILE.md</code>. Installed skills are read from <code>~/.pi/agent/skills/</code> and are always public in v0.</p><pre><code>{
-  "protocol": { "name": "pi-provider", "version": "2026-05", "baseline": "pi-provider-agent-v0" },
+  "protocol": { "name": "pi-provider", "version": "1.0.0", "version": "pi-provider-v1" },
   "profile": {
     "id": "ego-agent",
     "displayName": "Ego Coding Agent",
@@ -153,7 +153,7 @@
   "ok": true,
   "service": "pi-api",
   "version": "0.4.0",
-  "protocol": { "name": "pi-provider", "version": "2026-05", "baseline": "pi-provider-agent-v0" },
+  "protocol": { "name": "pi-provider", "version": "1.0.0", "version": "pi-provider-v1" },
   "status": { "readiness": "ready", "activeRuns": 1, "queuedRuns": 2, "maxConcurrentRuns": 3 }
 }</code></pre></section>
 
@@ -185,7 +185,7 @@ data: {"seq":43,"type":"turn.started","payload":{"turnId":"turn_123"}}</code></p
         <tr><td>Session</td><td><code>session.updated</code>, <code>session.replay_complete</code></td></tr>
       </tbody></table></section>
 
-      <section id="out-of-scope"><h2>Explicitly not Work Plane baseline</h2><ul>
+      <section id="out-of-scope"><h2>Explicitly not Work Plane version</h2><ul>
         <li>Agent files editing</li><li>Credential installation</li><li>Model config</li><li>Skills/extensions management</li><li>Provider filesystem allowlist</li><li>Owner audit</li><li>Provider runtime policy changes</li>
       </ul><p>pi-works does not expose Agent files UI; owner-plane file management belongs in pi-os owner surfaces.</p></section>
     </article>

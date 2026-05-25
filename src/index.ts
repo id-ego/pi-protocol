@@ -1,14 +1,13 @@
 import { Type, type Static, type TSchema } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 
-export const PI_PROVIDER_PROTOCOL_NAME = 'pi-provider' as const;
-export const PI_PROVIDER_PROTOCOL_VERSION = '2026-05' as const;
-export const PI_PROVIDER_AGENT_BASELINE = 'pi-provider-agent-v0' as const;
+export const PI_PROTOCOL_NAME = 'pi-protocol' as const;
+export const PI_PROTOCOL_VERSION = '1.0.0' as const;
+export const PI_PROVIDER_DISCOVERY_PATH = '/.well-known/pi-provider' as const;
 
 export const ProviderProtocolSchema = Type.Object({
-  name: Type.Literal(PI_PROVIDER_PROTOCOL_NAME),
-  version: Type.String({ minLength: 1 }),
-  baseline: Type.Literal(PI_PROVIDER_AGENT_BASELINE),
+  name: Type.Literal(PI_PROTOCOL_NAME),
+  version: Type.Literal(PI_PROTOCOL_VERSION),
 });
 export type ProviderProtocol = Static<typeof ProviderProtocolSchema>;
 

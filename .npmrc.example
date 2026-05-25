@@ -1,0 +1,2 @@
+@anakonn:registry=https://gitlab.anakonn.com/api/v4/projects/<pi-protocol-project-id>/packages/npm/
+//gitlab.anakonn.com/api/v4/projects/<pi-protocol-project-id>/packages/npm/:_authToken=${NPM_TOKEN}

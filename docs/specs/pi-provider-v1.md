@@ -1,17 +1,17 @@
-# pi-provider-agent-v0 Interface Definition
+# pi-provider-v1 Interface Definition
 
-Updated: 2026-05-23
+Updated: 1.0.0-23
 
 ## Status
 
-Draft baseline specification for the **pi-protocol Foundation** milestone.
+Draft version specification for the **pi-protocol Foundation** milestone.
 
-This document is the canonical Markdown source of truth for the `pi-provider-agent-v0` Work Plane interface. The companion light-mode HTML rendering is [`pi-provider-agent-v0.html`](./pi-provider-agent-v0.html).
+This document is the canonical Markdown source of truth for the `pi-provider-v1` Work Plane interface. The companion light-mode HTML rendering is [`pi-provider-v1.html`](./pi-provider-v1.html).
 
 ## Core rules
 
-1. **Baseline interfaces are mandatory.** A provider that declares `pi-provider-agent-v0` compatibility must implement every interface in this document.
-2. **Capabilities are not endpoint toggles.** Provider profile and installed skills describe what work the agent can perform; they do not describe which baseline endpoints exist.
+1. **Baseline interfaces are mandatory.** A provider that declares `pi-provider-v1` compatibility must implement every interface in this document.
+2. **Capabilities are not endpoint toggles.** Provider profile and installed skills describe what work the agent can perform; they do not describe which version endpoints exist.
 3. **pi-works does not manage provider internals.** Agent files, credential installation, model config, skills/extensions management, and owner audit belong to the pi-os Owner Plane.
 4. **Commands and queries use HTTP.** pi-works sends work commands and read queries through HTTP request/response.
 5. **Realtime reporting uses SSE.** Provider-to-pi-works realtime events use one canonical session-level SSE stream.
@@ -22,16 +22,16 @@ This document is the canonical Markdown source of truth for the `pi-provider-age
 | Field | Value |
 |---|---|
 | Protocol name | `pi-provider` |
-| Baseline | `pi-provider-agent-v0` |
-| Version format | date-like string, e.g. `2026-05` |
+| Baseline | `pi-provider-v1` |
+| Version format | date-like string, e.g. `1.0.0` |
 | Realtime transport | Server-Sent Events (SSE) |
-| Duplex WebSocket | Not part of v0 baseline |
+| Duplex WebSocket | Not part of v0 version |
 
 ## Required interfaces
 
 | Area | Method/path | Purpose |
 |---|---|---|
-| Provider Profile | `GET /.well-known/pi-api/provider` | Discovery endpoint for registering/verifying providers. |
+| Provider Profile | `GET /.well-known/pi-provider` | Discovery endpoint for registering/verifying providers. |
 | Provider Profile | `GET /provider/profile` | Explicit profile API endpoint. May return the same response as well-known in v0. |
 | Health | `GET /health` | Provider liveness/readiness and protocol metadata. |
 | Runs | `POST /runs` | Create a new assigned work run. |
@@ -122,8 +122,8 @@ Installed skills are always public in v0. There is no `visibility`, `private`, o
 {
   "protocol": {
     "name": "pi-provider",
-    "version": "2026-05",
-    "baseline": "pi-provider-agent-v0"
+    "version": "1.0.0",
+    "version": "pi-provider-v1"
   },
   "profile": {
     "id": "ego-agent",
@@ -160,8 +160,8 @@ GET /health
   "version": "0.4.0",
   "protocol": {
     "name": "pi-provider",
-    "version": "2026-05",
-    "baseline": "pi-provider-agent-v0"
+    "version": "1.0.0",
+    "version": "pi-provider-v1"
   },
   "status": {
     "readiness": "ready",
@@ -207,7 +207,7 @@ Example response:
   "id": "run_123",
   "status": "queued",
   "sessionId": "session_123",
-  "createdAt": "2026-05-23T00:00:00.000Z"
+  "createdAt": "1.0.0-23T00:00:00.000Z"
 }
 ```
 
@@ -250,8 +250,8 @@ Example response:
   "status": "running",
   "activity": "active",
   "lastEventSeq": 42,
-  "createdAt": "2026-05-23T00:00:00.000Z",
-  "updatedAt": "2026-05-23T00:01:00.000Z"
+  "createdAt": "1.0.0-23T00:00:00.000Z",
+  "updatedAt": "1.0.0-23T00:01:00.000Z"
 }
 ```
 
@@ -273,7 +273,7 @@ Example message:
   "sessionId": "session_123",
   "role": "assistant",
   "content": "I found the failing test and will update the implementation.",
-  "createdAt": "2026-05-23T00:01:00.000Z"
+  "createdAt": "1.0.0-23T00:01:00.000Z"
 }
 ```
 
@@ -295,7 +295,7 @@ Example event:
   "payload": {
     "turnId": "turn_123"
   },
-  "createdAt": "2026-05-23T00:01:00.000Z"
+  "createdAt": "1.0.0-23T00:01:00.000Z"
 }
 ```
 
@@ -384,7 +384,7 @@ The provider sends events with `seq > 42`.
 ```text
 event: session.event
 id: 43
-data: {"seq":43,"type":"turn.started","payload":{"turnId":"turn_123"},"createdAt":"2026-05-23T00:01:00.000Z"}
+data: {"seq":43,"type":"turn.started","payload":{"turnId":"turn_123"},"createdAt":"1.0.0-23T00:01:00.000Z"}
 ```
 
 A provider should send a replay/live boundary event after initial replay completes.
@@ -413,9 +413,9 @@ Work artifacts are employer-visible outputs created as part of assigned work, su
 
 Provider internal files are not work artifacts by default.
 
-## Explicitly not Work Plane baseline
+## Explicitly not Work Plane version
 
-The following are Owner Plane responsibilities and are excluded from `pi-provider-agent-v0` Work Plane baseline:
+The following are Owner Plane responsibilities and are excluded from `pi-provider-v1` Work Plane version:
 
 - Agent files editing
 - credential installation
