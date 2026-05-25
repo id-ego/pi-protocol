@@ -1,16 +1,16 @@
-# pi-provider-v1 Interface Definition
+# pi-protocol v1 Provider Interface Definition
 
-Updated: 1.0.0-23
+Updated: 2026-05-25
 
 ## Status
 
-Draft version specification for the **pi-protocol Foundation** milestone.
+Current v1 specification for the **pi-protocol Foundation** milestone.
 
-This document is the canonical Markdown source of truth for the `pi-provider-v1` Work Plane interface. The companion light-mode HTML rendering is [`pi-provider-v1.html`](./pi-provider-v1.html).
+This document is the canonical Markdown source of truth for the `pi-protocol` v1 Work Plane interface. The companion light-mode HTML rendering is [`pi-provider-v1.html`](./pi-provider-v1.html).
 
 ## Core rules
 
-1. **Baseline interfaces are mandatory.** A provider that declares `pi-provider-v1` compatibility must implement every interface in this document.
+1. **Protocol version interfaces are mandatory.** A provider that declares `pi-protocol@1.0.0` compatibility must implement every interface in this document.
 2. **Capabilities are not endpoint toggles.** Provider profile and installed skills describe what work the agent can perform; they do not describe which version endpoints exist.
 3. **pi-works does not manage provider internals.** Agent files, credential installation, model config, skills/extensions management, and owner audit belong to the pi-os Owner Plane.
 4. **Commands and queries use HTTP.** pi-works sends work commands and read queries through HTTP request/response.
@@ -21,18 +21,21 @@ This document is the canonical Markdown source of truth for the `pi-provider-v1`
 
 | Field | Value |
 |---|---|
-| Protocol name | `pi-provider` |
-| Baseline | `pi-provider-v1` |
-| Version format | date-like string, e.g. `1.0.0` |
+| Protocol name | `pi-protocol` |
+| Protocol version | `1.0.0` |
+| Discovery path | `/.well-known/pi-provider` |
+| Metadata shape | `name + version` |
 | Realtime transport | Server-Sent Events (SSE) |
-| Duplex WebSocket | Not part of v0 version |
+| Duplex WebSocket | Not part of v1 |
+
+The old `baseline` field and old `/.well-known/pi-api/provider` discovery path are not part of v1.
 
 ## Required interfaces
 
 | Area | Method/path | Purpose |
 |---|---|---|
 | Provider Profile | `GET /.well-known/pi-provider` | Discovery endpoint for registering/verifying providers. |
-| Provider Profile | `GET /provider/profile` | Explicit profile API endpoint. May return the same response as well-known in v0. |
+| Provider Profile | `GET /provider/profile` | Explicit profile API endpoint. May return the same response as well-known discovery. |
 | Health | `GET /health` | Provider liveness/readiness and protocol metadata. |
 | Runs | `POST /runs` | Create a new assigned work run. |
 | Runs | `GET /runs/:runId` | Read run status. |
@@ -48,7 +51,7 @@ This document is the canonical Markdown source of truth for the `pi-provider-v1`
 
 ## Authentication
 
-Initial v0 authentication is bearer token based.
+Initial v1 authentication is bearer token based.
 
 ```http
 Authorization: Bearer <provider-access-token>
@@ -90,40 +93,21 @@ Profile source:
 ~/.pi/agent/PROFILE.md
 ```
 
-Profile format:
-
-```md
----
-id: ego-agent
-displayName: Ego Coding Agent
-headline: General coding and operations agent
-operator:
-  name: ego
-  contact: mrego@anakonn.com
-links:
-  - label: Homepage
-    url: https://example.com
----
-
-I help implement GitLab issues, debug TypeScript/SvelteKit apps, and maintain Docker/Postgres services.
-```
-
-Skills source:
+Installed skills source:
 
 ```text
 ~/.pi/agent/skills/
 ```
 
-Installed skills are always public in v0. There is no `visibility`, `private`, or `public` skill flag.
+Installed skills are always public in v1. There is no `visibility`, `private`, or `public` skill flag.
 
 ### Response
 
 ```json
 {
   "protocol": {
-    "name": "pi-provider",
-    "version": "1.0.0",
-    "version": "pi-provider-v1"
+    "name": "pi-protocol",
+    "version": "1.0.0"
   },
   "profile": {
     "id": "ego-agent",
@@ -156,12 +140,11 @@ GET /health
 ```json
 {
   "ok": true,
-  "service": "pi-api",
+  "service": "pi-os-provider",
   "version": "0.4.0",
   "protocol": {
-    "name": "pi-provider",
-    "version": "1.0.0",
-    "version": "pi-provider-v1"
+    "name": "pi-protocol",
+    "version": "1.0.0"
   },
   "status": {
     "readiness": "ready",
@@ -207,7 +190,7 @@ Example response:
   "id": "run_123",
   "status": "queued",
   "sessionId": "session_123",
-  "createdAt": "1.0.0-23T00:00:00.000Z"
+  "createdAt": "2026-05-25T00:00:00.000Z"
 }
 ```
 
@@ -235,6 +218,15 @@ Sessions are the canonical work record.
 GET /sessions?limit=25&cursor=<cursor>
 ```
 
+Example response:
+
+```json
+{
+  "sessions": [],
+  "nextCursor": null
+}
+```
+
 ### Read session
 
 ```http
@@ -250,8 +242,8 @@ Example response:
   "status": "running",
   "activity": "active",
   "lastEventSeq": 42,
-  "createdAt": "1.0.0-23T00:00:00.000Z",
-  "updatedAt": "1.0.0-23T00:01:00.000Z"
+  "createdAt": "2026-05-25T00:00:00.000Z",
+  "updatedAt": "2026-05-25T00:01:00.000Z"
 }
 ```
 
@@ -265,15 +257,20 @@ GET /sessions/:sessionId/messages?limit=100&cursor=<cursor>
 
 Messages are transcript records. They are distinct from lower-level events.
 
-Example message:
+Example response:
 
 ```json
 {
-  "id": "message_123",
-  "sessionId": "session_123",
-  "role": "assistant",
-  "content": "I found the failing test and will update the implementation.",
-  "createdAt": "1.0.0-23T00:01:00.000Z"
+  "messages": [
+    {
+      "id": "message_123",
+      "sessionId": "session_123",
+      "role": "assistant",
+      "content": "I found the failing test and will update the implementation.",
+      "createdAt": "2026-05-25T00:01:00.000Z"
+    }
+  ],
+  "nextCursor": null
 }
 ```
 
@@ -285,17 +282,22 @@ GET /sessions/:sessionId/events?afterSeq=42&limit=100
 
 Events are ordered records of state changes and progress.
 
-Example event:
+Example response:
 
 ```json
 {
-  "seq": 43,
-  "sessionId": "session_123",
-  "type": "turn.started",
-  "payload": {
-    "turnId": "turn_123"
-  },
-  "createdAt": "1.0.0-23T00:01:00.000Z"
+  "events": [
+    {
+      "seq": 43,
+      "sessionId": "session_123",
+      "type": "turn.started",
+      "payload": {
+        "turnId": "turn_123"
+      },
+      "createdAt": "2026-05-25T00:01:00.000Z"
+    }
+  ],
+  "nextSeq": null
 }
 ```
 
@@ -316,6 +318,17 @@ GET /conversations/:sessionId
 ```
 
 This is a read-only projection. It must not call AI.
+
+Example response:
+
+```json
+{
+  "sessionId": "session_123",
+  "status": "idle",
+  "messages": [],
+  "lastEventSeq": 42
+}
+```
 
 ### Send message
 
@@ -352,6 +365,16 @@ This endpoint may create or queue a new turn and trigger AI/agent work.
 POST /conversations/:sessionId/stop
 ```
 
+Example response:
+
+```json
+{
+  "ok": true,
+  "stoppedCurrent": true,
+  "cancelledQueued": 0
+}
+```
+
 Stop requests the provider to stop the current conversation generation/work for the session.
 
 ## Session SSE event stream
@@ -361,7 +384,7 @@ GET /sessions/:sessionId/events/stream?afterSeq=42
 Accept: text/event-stream
 ```
 
-The SSE stream is the canonical realtime provider-to-Control-Center event stream. It is one-way. pi-works commands still use HTTP.
+The SSE stream is the canonical realtime provider-to-pi-works event stream. It is one-way. pi-works commands still use HTTP.
 
 ### Resume
 
@@ -384,7 +407,7 @@ The provider sends events with `seq > 42`.
 ```text
 event: session.event
 id: 43
-data: {"seq":43,"type":"turn.started","payload":{"turnId":"turn_123"},"createdAt":"1.0.0-23T00:01:00.000Z"}
+data: {"seq":43,"sessionId":"session_123","type":"turn.started","payload":{"turnId":"turn_123"},"createdAt":"2026-05-25T00:01:00.000Z"}
 ```
 
 A provider should send a replay/live boundary event after initial replay completes.
@@ -392,12 +415,12 @@ A provider should send a replay/live boundary event after initial replay complet
 ```text
 event: session.replay_complete
 id: 45
-data: {"seq":45,"type":"session.replay_complete"}
+data: {"seq":45,"sessionId":"session_123","type":"session.replay_complete","createdAt":"2026-05-25T00:01:01.000Z"}
 ```
 
 ## Event taxonomy
 
-The exact event taxonomy may grow, but v0 should support at least these categories:
+The exact event taxonomy may grow, but v1 should support at least these categories:
 
 | Category | Examples |
 |---|---|
@@ -413,9 +436,9 @@ Work artifacts are employer-visible outputs created as part of assigned work, su
 
 Provider internal files are not work artifacts by default.
 
-## Explicitly not Work Plane version
+## Explicitly not Work Plane v1
 
-The following are Owner Plane responsibilities and are excluded from `pi-provider-v1` Work Plane version:
+The following are Owner Plane responsibilities and are excluded from `pi-protocol` v1 Work Plane:
 
 - Agent files editing
 - credential installation

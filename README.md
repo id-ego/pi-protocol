@@ -15,7 +15,9 @@ This repository should contain only shared interface material required for pi-os
 - provider discovery constants
 - protocol metadata schemas/types
 - health/profile/error/run/session/conversation/event schemas and types
-- compatibility helpers that do not depend on pi-os or pi-works app code
+- creator helpers for pi-os provider responses/events/errors
+- consumer helpers for pi-works discovery, compatibility, and parsing
+- framework-neutral CLI contract tools
 - canonical protocol/spec documentation
 
 ## What does not belong here
@@ -30,7 +32,7 @@ Do **not** add:
 - pi-works BFF implementation internals unless they are part of the pi-os ↔ pi-works contract
 - imports from app repositories
 
-The current `1.0.0` split bootstrap still includes some transitional exports that came from the old monorepo shared typing package. Those exports exist to keep the split working, but they should be reviewed and either promoted to stable protocol schemas or moved back into the owning repo.
+Transitional exports from the old monorepo shared typing package are not part of the stable public surface. App-local pi-os runtime types and pi-works BFF/UI view models belong in their owning repos.
 
 ## Install
 
@@ -60,6 +62,31 @@ PI_PROVIDER_DISCOVERY_PATH = '/.well-known/pi-provider';
 
 Provider metadata uses `name + version` only. The old v0 `baseline` field and `/.well-known/pi-api/provider` discovery path are not part of v1.
 
+## SDK usage
+
+```ts
+import {
+  createProviderHealth,
+  parseProviderProfile,
+  providerDiscoveryUrl,
+} from '@anakonn/pi-protocol';
+```
+
+- Creator helpers such as `createProviderHealth` help pi-os build schema-valid provider responses.
+- Consumer helpers such as `parseProviderProfile` help pi-works validate provider responses before use.
+- URL helpers such as `providerDiscoveryUrl` keep endpoint construction aligned with the spec.
+
+## CLI
+
+```bash
+pi-protocol init-provider ./fixtures
+pi-protocol validate ./fixtures
+pi-protocol inspect-provider http://localhost:3000
+pi-protocol inspect-provider http://localhost:3000 --create-run --token "$PI_PROVIDER_TOKEN" --json
+```
+
+`inspect-provider` read-only mode checks discovery/profile/health. Full contract mode uses `--create-run` because it calls side-effect endpoints.
+
 ## Development
 
 ```bash
@@ -86,13 +113,8 @@ Consumers should pin exact versions, for example:
 
 ## Spec
 
-- [pi-provider v1](./docs/specs/pi-provider-v1.md)
+- [pi-protocol v1 provider interface](./docs/specs/pi-provider-v1.md)
 
-## Immediate post-split work
+## Rules
 
-The next stabilization step is to grill and decide the public protocol surface:
-
-- Which current exports are truly pi-os ↔ pi-works contract?
-- Which exports are pi-os-only and should move to `anakonn/pi-os`?
-- Which exports are pi-works-only and should move to `anakonn/pi-works`?
-- Which externally observable shapes need TypeBox schemas and drift guards?
+- [pi-protocol SDK boundary and contract ownership](./docs/rules/pi-protocol-sdk-boundary.md)
