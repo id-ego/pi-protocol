@@ -95,7 +95,6 @@ pi-protocol inspect-provider http://localhost:3000 --create-run --token "$PI_PRO
 bun install
 bun run typecheck
 bun run build
-bun run smoke:boundary
 bun run pack:check
 ```
 
