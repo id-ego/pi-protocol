@@ -12,14 +12,17 @@ validate:
     - bun run smoke:boundary
     - bun run pack:check
 
-publish:
+publish:npm:
   image: oven/bun:1.3.13
   stage: publish
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
   script:
+    - test -n "$NPM_TOKEN"
     - bun install --frozen-lockfile
+    - bun run typecheck
     - bun run build
-    - echo "@anakonn:registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/" > .npmrc
-    - echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
-    - bun publish --access restricted
+    - bun run smoke:boundary
+    - bun run pack:check
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+    - npm publish --access public

@@ -6,7 +6,7 @@
 - `pi-works` consumes the contract to discover providers, validate compatibility, and call Work Plane surfaces.
 - `pi-works` must communicate through this package's protocol contracts, not by importing pi-os app code or runtime internals.
 
-This repo publishes the private GitLab Package Registry package `@anakonn/pi-protocol`.
+The package is published publicly to npm as `@anakonn/pi-protocol`. Canonical development happens in Anakonn GitLab; GitHub is the public mirror and public feedback channel.
 
 ## What belongs here
 
@@ -37,10 +37,12 @@ Transitional exports from the old monorepo shared typing package are not part of
 ## Install
 
 ```bash
-bun add @anakonn/pi-protocol@1.0.0
+bun add @anakonn/pi-protocol@1.1.0
+# or
+npm install @anakonn/pi-protocol@1.1.0
 ```
 
-Use `.npmrc.example` as the local/CI registry template. CI should use `CI_JOB_TOKEN`; local development should use a read-package-registry Deploy Token.
+Consumers should pin exact versions.
 
 ## Core constants
 
@@ -99,14 +101,20 @@ bun run pack:check
 
 ## Release
 
-Releases are tag-based. A `vX.Y.Z` tag publishes `@anakonn/pi-protocol@X.Y.Z` to GitLab Package Registry.
+Releases are tag-based. A protected `vX.Y.Z` tag publishes `@anakonn/pi-protocol@X.Y.Z` to public npm from GitLab CI.
+
+Required release setup:
+
+- npm `@anakonn` scope/package publish permission
+- `NPM_TOKEN` as a masked/protected GitLab CI variable
+- package `version` must match the release tag without the leading `v`
 
 Consumers should pin exact versions, for example:
 
 ```json
 {
   "dependencies": {
-    "@anakonn/pi-protocol": "1.0.0"
+    "@anakonn/pi-protocol": "1.1.0"
   }
 }
 ```
