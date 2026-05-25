@@ -326,6 +326,126 @@ export function assertSchema<T extends TSchema>(schema: T, value: unknown): Stat
   return result.value;
 }
 
+export function createProviderProtocol(): ProviderProtocol {
+  return { name: PI_PROTOCOL_NAME, version: PI_PROTOCOL_VERSION };
+}
+
+export function createProviderProfile(input: {
+  profile: ProviderProfileInfo;
+  skills: ProviderSkill[];
+}): ProviderProfile {
+  return assertSchema(ProviderProfileSchema, {
+    protocol: createProviderProtocol(),
+    profile: input.profile,
+    skills: input.skills,
+  });
+}
+
+export function createProviderHealth(input: {
+  service: string;
+  version: string;
+  status: ProviderHealthStatus;
+  ok?: boolean;
+}): ProviderHealth {
+  return assertSchema(ProviderHealthSchema, {
+    ok: input.ok ?? true,
+    service: input.service,
+    version: input.version,
+    protocol: createProviderProtocol(),
+    status: input.status,
+  });
+}
+
+export function createProviderErrorEnvelope(input: {
+  code: string;
+  message: string;
+  retryable?: boolean;
+  details?: Record<string, unknown>;
+}): ProviderErrorEnvelope {
+  return assertSchema(ProviderErrorEnvelopeSchema, {
+    error: {
+      code: input.code,
+      message: input.message,
+      retryable: input.retryable ?? false,
+      details: input.details ?? {},
+    },
+  });
+}
+
+export function createProviderRun(input: ProviderRun): ProviderRun {
+  return assertSchema(ProviderRunSchema, input);
+}
+
+export function createProviderSession(input: ProviderSession): ProviderSession {
+  return assertSchema(ProviderSessionSchema, input);
+}
+
+export function createProviderSessionListResponse(input: {
+  sessions: ProviderSession[];
+  nextCursor?: string | null;
+}): ProviderSessionListResponse {
+  return assertSchema(ProviderSessionListResponseSchema, {
+    sessions: input.sessions,
+    nextCursor: input.nextCursor ?? null,
+  });
+}
+
+export function createProviderSessionMessage(input: ProviderSessionMessage): ProviderSessionMessage {
+  return assertSchema(ProviderSessionMessageSchema, input);
+}
+
+export function createProviderSessionMessagesResponse(input: {
+  messages: ProviderSessionMessage[];
+  nextCursor?: string | null;
+}): ProviderSessionMessagesResponse {
+  return assertSchema(ProviderSessionMessagesResponseSchema, {
+    messages: input.messages,
+    nextCursor: input.nextCursor ?? null,
+  });
+}
+
+export function createProviderSessionEvent(input: ProviderSessionEvent): ProviderSessionEvent {
+  return assertSchema(ProviderSessionEventSchema, input);
+}
+
+export function createProviderSessionEventsResponse(input: {
+  events: ProviderSessionEvent[];
+  nextSeq?: number | null;
+}): ProviderSessionEventsResponse {
+  return assertSchema(ProviderSessionEventsResponseSchema, {
+    events: input.events,
+    nextSeq: input.nextSeq ?? null,
+  });
+}
+
+export function createProviderSessionReplayCompleteEvent(
+  input: ProviderSessionReplayCompleteEvent,
+): ProviderSessionReplayCompleteEvent {
+  return assertSchema(ProviderSessionReplayCompleteEventSchema, input);
+}
+
+export function createProviderConversation(input: ProviderConversation): ProviderConversation {
+  return assertSchema(ProviderConversationSchema, input);
+}
+
+export function createProviderConversationSendResponse(
+  input: ProviderConversationSendResponse,
+): ProviderConversationSendResponse {
+  return assertSchema(ProviderConversationSendResponseSchema, input);
+}
+
+export function createProviderConversationStopResponse(input: {
+  stoppedCurrent: boolean;
+  cancelledQueued: number;
+  ok?: boolean;
+}): ProviderConversationStopResponse {
+  return assertSchema(ProviderConversationStopResponseSchema, {
+    ok: input.ok ?? true,
+    stoppedCurrent: input.stoppedCurrent,
+    cancelledQueued: input.cancelledQueued,
+  });
+}
+
 export function isProviderProtocol(value: unknown): value is ProviderProtocol {
   return checkSchema(ProviderProtocolSchema, value);
 }
