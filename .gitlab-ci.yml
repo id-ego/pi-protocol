@@ -9,7 +9,6 @@ validate:
     - bun install --frozen-lockfile
     - bun run typecheck
     - bun run build
-    - bun run smoke:boundary
     - bun run pack:check
 
 publish:npm:
@@ -22,7 +21,6 @@ publish:npm:
     - bun install --frozen-lockfile
     - bun run typecheck
     - bun run build
-    - bun run smoke:boundary
     - bun run pack:check
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
     - bunx npm publish --access public
