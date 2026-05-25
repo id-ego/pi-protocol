@@ -2,6 +2,8 @@
 
 Private GitLab Package Registry package for the pi-protocol v1 contract.
 
+`pi-protocol` is the required compatibility contract for communication between `pi-os` providers and `pi-works` consumers/orchestrators. `pi-os` implements the provider side of the contract; `pi-works` uses the contract to discover providers, validate compatibility, and call Work Plane surfaces without importing pi-os app internals.
+
 ## Install
 
 ```bash

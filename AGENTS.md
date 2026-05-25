@@ -6,8 +6,9 @@ For non-trivial work, run the 3R Gate first and follow any required rules/refs/r
 
 Current recurring project constraints:
 
+- `pi-protocol` is the required compatibility contract for communication between `pi-os` providers and `pi-works` consumers/orchestrators.
 - `pi-protocol` owns the `@anakonn/pi-protocol` package, TypeBox schemas, inferred types, protocol constants, and canonical provider discovery/spec docs.
-- Keep the package free of app imports and repo-local app code.
+- Keep the package free of app imports and repo-local app code; `pi-works` must communicate through protocol contracts, not pi-os internals.
 - `PI_PROTOCOL_NAME`, `PI_PROTOCOL_VERSION`, and `PI_PROVIDER_DISCOVERY_PATH` are protocol constants, not environment configuration.
 - Current v1 discovery path is `/.well-known/pi-provider`; do not reintroduce `/.well-known/pi-api/provider` unless explicitly requested as a versioned compatibility decision.
 - Current v1 metadata uses `name + version`; do not reintroduce the old `baseline` field unless explicitly requested as a protocol versioning decision.
