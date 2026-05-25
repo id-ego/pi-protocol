@@ -4,7 +4,7 @@ Updated: 2026-05-23
 
 ## Status
 
-Draft baseline specification for the **Pi Provider Protocol Foundation** milestone.
+Draft baseline specification for the **pi-protocol Foundation** milestone.
 
 This document is the canonical Markdown source of truth for the `pi-provider-agent-v0` Work Plane interface. The companion light-mode HTML rendering is [`pi-provider-agent-v0.html`](./pi-provider-agent-v0.html).
 
@@ -12,9 +12,9 @@ This document is the canonical Markdown source of truth for the `pi-provider-age
 
 1. **Baseline interfaces are mandatory.** A provider that declares `pi-provider-agent-v0` compatibility must implement every interface in this document.
 2. **Capabilities are not endpoint toggles.** Provider profile and installed skills describe what work the agent can perform; they do not describe which baseline endpoints exist.
-3. **Control Center does not manage provider internals.** Agent files, credential installation, model config, skills/extensions management, and owner audit belong to the Pi Agent Runtime Owner Plane.
-4. **Commands and queries use HTTP.** Control Center sends work commands and read queries through HTTP request/response.
-5. **Realtime reporting uses SSE.** Provider-to-Control-Center realtime events use one canonical session-level SSE stream.
+3. **pi-works does not manage provider internals.** Agent files, credential installation, model config, skills/extensions management, and owner audit belong to the pi-os Owner Plane.
+4. **Commands and queries use HTTP.** pi-works sends work commands and read queries through HTTP request/response.
+5. **Realtime reporting uses SSE.** Provider-to-pi-works realtime events use one canonical session-level SSE stream.
 6. **Status queries are not AI conversations.** Status endpoints are read-only, deterministic, side-effect free, and backed by DB/runtime state/event log.
 
 ## Protocol constants
@@ -54,7 +54,7 @@ Initial v0 authentication is bearer token based.
 Authorization: Bearer <provider-access-token>
 ```
 
-Provider access tokens authorize a Control Center to call the provider Work Plane API. They are distinct from project work credentials installed by the agent owner.
+Provider access tokens authorize a pi-works to call the provider Work Plane API. They are distinct from project work credentials installed by the agent owner.
 
 All endpoints except explicitly public discovery/health endpoints may require provider authentication. Whether profile/health require auth is a provider deployment decision, but authenticated access must be supported for all Work Plane operations.
 
@@ -361,7 +361,7 @@ GET /sessions/:sessionId/events/stream?afterSeq=42
 Accept: text/event-stream
 ```
 
-The SSE stream is the canonical realtime provider-to-Control-Center event stream. It is one-way. Control Center commands still use HTTP.
+The SSE stream is the canonical realtime provider-to-Control-Center event stream. It is one-way. pi-works commands still use HTTP.
 
 ### Resume
 
@@ -425,4 +425,4 @@ The following are Owner Plane responsibilities and are excluded from `pi-provide
 - owner audit
 - provider runtime policy changes
 
-Current Control Center Agent files UI is transitional owner-plane functionality and should eventually move to Pi Agent Runtime Owner Console.
+Current pi-works Agent files UI is transitional owner-plane functionality and should eventually move to pi-os Owner Console.
