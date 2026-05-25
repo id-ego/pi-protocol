@@ -3,7 +3,49 @@ import { Value } from '@sinclair/typebox/value';
 
 export const PI_PROTOCOL_NAME = 'pi-protocol' as const;
 export const PI_PROTOCOL_VERSION = '1.0.0' as const;
+
 export const PI_PROVIDER_DISCOVERY_PATH = '/.well-known/pi-provider' as const;
+export const PI_PROVIDER_PROFILE_PATH = '/provider/profile' as const;
+export const PI_PROVIDER_HEALTH_PATH = '/health' as const;
+export const PI_PROVIDER_RUNS_PATH = '/runs' as const;
+export const PI_PROVIDER_SESSIONS_PATH = '/sessions' as const;
+export const PI_PROVIDER_CONVERSATIONS_PATH = '/conversations' as const;
+
+export function providerRunPath(runId: string): string {
+  return `${PI_PROVIDER_RUNS_PATH}/${encodeURIComponent(runId)}`;
+}
+
+export function providerRunCancelPath(runId: string): string {
+  return `${providerRunPath(runId)}/cancel`;
+}
+
+export function providerSessionPath(sessionId: string): string {
+  return `${PI_PROVIDER_SESSIONS_PATH}/${encodeURIComponent(sessionId)}`;
+}
+
+export function providerSessionMessagesPath(sessionId: string): string {
+  return `${providerSessionPath(sessionId)}/messages`;
+}
+
+export function providerSessionEventsPath(sessionId: string): string {
+  return `${providerSessionPath(sessionId)}/events`;
+}
+
+export function providerSessionEventsStreamPath(sessionId: string): string {
+  return `${providerSessionEventsPath(sessionId)}/stream`;
+}
+
+export function providerConversationPath(sessionId: string): string {
+  return `${PI_PROVIDER_CONVERSATIONS_PATH}/${encodeURIComponent(sessionId)}`;
+}
+
+export function providerConversationMessagesPath(sessionId: string): string {
+  return `${providerConversationPath(sessionId)}/messages`;
+}
+
+export function providerConversationStopPath(sessionId: string): string {
+  return `${providerConversationPath(sessionId)}/stop`;
+}
 
 export const ProviderProtocolSchema = Type.Object({
   name: Type.Literal(PI_PROTOCOL_NAME),
@@ -90,6 +132,19 @@ export const ProviderRunStatusSchema = Type.Union([
 ]);
 export type ProviderRunStatus = Static<typeof ProviderRunStatusSchema>;
 
+export const ProviderRunContextSchema = Type.Record(Type.String(), Type.Unknown());
+export type ProviderRunContext = Static<typeof ProviderRunContextSchema>;
+
+export const ProviderRunConstraintsSchema = Type.Record(Type.String(), Type.Unknown());
+export type ProviderRunConstraints = Static<typeof ProviderRunConstraintsSchema>;
+
+export const ProviderCreateRunRequestSchema = Type.Object({
+  input: Type.String({ minLength: 1 }),
+  context: Type.Optional(ProviderRunContextSchema),
+  constraints: Type.Optional(ProviderRunConstraintsSchema),
+});
+export type ProviderCreateRunRequest = Static<typeof ProviderCreateRunRequestSchema>;
+
 export const ProviderRunSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   status: ProviderRunStatusSchema,
@@ -126,6 +181,12 @@ export const ProviderSessionSchema = Type.Object({
 });
 export type ProviderSession = Static<typeof ProviderSessionSchema>;
 
+export const ProviderSessionListResponseSchema = Type.Object({
+  sessions: Type.Array(ProviderSessionSchema),
+  nextCursor: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+});
+export type ProviderSessionListResponse = Static<typeof ProviderSessionListResponseSchema>;
+
 export const ProviderMessageRoleSchema = Type.Union([
   Type.Literal('user'),
   Type.Literal('assistant'),
@@ -142,6 +203,12 @@ export const ProviderSessionMessageSchema = Type.Object({
 });
 export type ProviderSessionMessage = Static<typeof ProviderSessionMessageSchema>;
 
+export const ProviderSessionMessagesResponseSchema = Type.Object({
+  messages: Type.Array(ProviderSessionMessageSchema),
+  nextCursor: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+});
+export type ProviderSessionMessagesResponse = Static<typeof ProviderSessionMessagesResponseSchema>;
+
 export const ProviderSessionEventSchema = Type.Object({
   seq: Type.Number({ minimum: 0 }),
   sessionId: Type.String({ minLength: 1 }),
@@ -151,17 +218,26 @@ export const ProviderSessionEventSchema = Type.Object({
 });
 export type ProviderSessionEvent = Static<typeof ProviderSessionEventSchema>;
 
+export const ProviderSessionEventsResponseSchema = Type.Object({
+  events: Type.Array(ProviderSessionEventSchema),
+  nextSeq: Type.Union([Type.Number({ minimum: 0 }), Type.Null()]),
+});
+export type ProviderSessionEventsResponse = Static<typeof ProviderSessionEventsResponseSchema>;
+
+export const ProviderConversationStatusSchema = Type.Union([
+  Type.Literal('idle'),
+  Type.Literal('queued'),
+  Type.Literal('running'),
+  Type.Literal('stopping'),
+  Type.Literal('completed'),
+  Type.Literal('failed'),
+  Type.Literal('interrupted'),
+]);
+export type ProviderConversationStatus = Static<typeof ProviderConversationStatusSchema>;
+
 export const ProviderConversationSchema = Type.Object({
   sessionId: Type.String({ minLength: 1 }),
-  status: Type.Union([
-    Type.Literal('idle'),
-    Type.Literal('queued'),
-    Type.Literal('running'),
-    Type.Literal('stopping'),
-    Type.Literal('completed'),
-    Type.Literal('failed'),
-    Type.Literal('interrupted'),
-  ]),
+  status: ProviderConversationStatusSchema,
   messages: Type.Array(ProviderSessionMessageSchema),
   lastEventSeq: Type.Number({ minimum: 0 }),
 });
@@ -181,11 +257,26 @@ export const ProviderConversationSendResponseSchema = Type.Object({
 });
 export type ProviderConversationSendResponse = Static<typeof ProviderConversationSendResponseSchema>;
 
+export const ProviderConversationStopResponseSchema = Type.Object({
+  ok: Type.Boolean(),
+  stoppedCurrent: Type.Boolean(),
+  cancelledQueued: Type.Number({ minimum: 0 }),
+});
+export type ProviderConversationStopResponse = Static<typeof ProviderConversationStopResponseSchema>;
+
 export const ProviderSseEventNameSchema = Type.Union([
   Type.Literal('session.event'),
   Type.Literal('session.replay_complete'),
 ]);
 export type ProviderSseEventName = Static<typeof ProviderSseEventNameSchema>;
+
+export const ProviderSessionReplayCompleteEventSchema = Type.Object({
+  seq: Type.Number({ minimum: 0 }),
+  sessionId: Type.String({ minLength: 1 }),
+  type: Type.Literal('session.replay_complete'),
+  createdAt: Type.Optional(Type.String({ minLength: 1 })),
+});
+export type ProviderSessionReplayCompleteEvent = Static<typeof ProviderSessionReplayCompleteEventSchema>;
 
 export const ProviderCompatibilityStatusSchema = Type.Union([
   Type.Literal('compatible'),
@@ -195,486 +286,70 @@ export const ProviderCompatibilityStatusSchema = Type.Union([
 ]);
 export type ProviderCompatibilityStatus = Static<typeof ProviderCompatibilityStatusSchema>;
 
-export function isProviderProtocol(value: unknown): value is ProviderProtocol {
-  return Value.Check(ProviderProtocolSchema, value);
+export type SchemaValidationResult<T extends TSchema> =
+  | { ok: true; value: Static<T> }
+  | { ok: false; errors: string[] };
+
+export class PiProtocolValidationError extends Error {
+  readonly errors: string[];
+
+  constructor(errors: string[]) {
+    super(`pi-protocol validation failed: ${errors.join('; ')}`);
+    this.name = 'PiProtocolValidationError';
+    this.errors = errors;
+  }
 }
 
-export function isProviderProfile(value: unknown): value is ProviderProfile {
-  return Value.Check(ProviderProfileSchema, value);
-}
-
-export function isProviderHealth(value: unknown): value is ProviderHealth {
-  return Value.Check(ProviderHealthSchema, value);
-}
-
-export function isProviderErrorEnvelope(value: unknown): value is ProviderErrorEnvelope {
-  return Value.Check(ProviderErrorEnvelopeSchema, value);
+export function getSchemaErrors<T extends TSchema>(schema: T, value: unknown): string[] {
+  return [...Value.Errors(schema, value)].map((error) => {
+    const path = error.path === '' ? '/' : error.path;
+    return `${path}: ${error.message}`;
+  });
 }
 
 export function checkSchema<T extends TSchema>(schema: T, value: unknown): value is Static<T> {
   return Value.Check(schema, value);
 }
 
-// Transitional Work Plane and pi-works BFF contract types.
-// These are kept in pi-protocol so pi-os and pi-works can split without a legacy shared package.
-export type PiApiHealth = { ok: true };
-
-export type PiApiNode = {
-  id: string;
-  name: string;
-  baseUrl: string;
-};
-
-export type PiApiNodeCredentialSummary = {
-  configured: true;
-  providerApiKeyFingerprint: string;
-  keyVersion: string;
-  rotatedAt?: string | Date | null;
-};
-
-export type PiApiNodeProviderSummary = {
-  compatibility: ProviderCompatibilityStatus;
-  checkedAt?: string | Date | null;
-  error?: string | null;
-  health?: ProviderHealth | null;
-  profile?: ProviderProfile | null;
-};
-
-export type PiApiNodeDiagnostic = PiApiNode & {
-  credentialConfigured: boolean;
-  credentialAvailable: boolean | null;
-  credential: PiApiNodeCredentialSummary | null;
-  configSource: 'db';
-  capabilities: string[];
-  managementMode: 'read-only' | 'read-write';
-  diagnostics: string[];
-  health?: {
-    status: 'unknown' | 'healthy' | 'unhealthy';
-    checkedAt?: string | Date | null;
-    error?: string | null;
-  };
-  provider?: PiApiNodeProviderSummary;
-};
-
-export type PiApiError = {
-  error: string;
-};
-
-export type SessionStatus = 'queued' | 'active' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
-
-export type TurnStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'interrupted';
-
-export type MessageRole = 'user' | 'assistant';
-
-export type ConversationMessageRole = MessageRole | 'system';
-
-export type MessageStatus = 'streaming' | 'complete';
-
-export type ConversationMessageStatus = MessageStatus | 'pending' | 'error';
-
-export type ConversationStatus = 'idle' | 'running' | 'stopping' | 'completed' | 'failed' | 'interrupted';
-
-export type ConversationQueuePosition = 'started' | 'queued';
-
-export type ConversationInputDurability = 'memory';
-
-export type SessionListQuery = {
-  status?: SessionStatus | string;
-  limit?: number;
-};
-
-export type SessionEventsQuery = {
-  afterSeq?: number;
-  limit?: number;
-};
-
-export type Session = {
-  id: string;
-  status: SessionStatus;
-  title: string | null;
-  cwd: string;
-  agentDir: string;
-  sessionFile: string | null;
-  metadata: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
-  startedAt: string | null;
-  finishedAt: string | null;
-  error: string | null;
-};
-
-export type SessionListResponse = {
-  sessions: Session[];
-  nextCursor: string | null;
-};
-
-export type SessionMessage = {
-  id: string;
-  sessionId: string;
-  turnId: string | null;
-  role: MessageRole;
-  status: MessageStatus;
-  content: string;
-  sourceEventSeq: number | null;
-  createdAt: string;
-  updatedAt: string;
-  completedAt: string | null;
-};
-
-export type SessionMessagesResponse = {
-  messages: SessionMessage[];
-};
-
-export type SessionTurn = {
-  id: string;
-  sessionId: string;
-  status: TurnStatus;
-  kind: string;
-  input: string;
-  metadata: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
-  startedAt: string | null;
-  finishedAt: string | null;
-  error: string | null;
-};
-
-export type SessionTurnsResponse = {
-  turns: SessionTurn[];
-};
-
-export type SessionEvent = {
-  id: number;
-  sessionId: string;
-  turnId: string | null;
-  seq: number;
-  type: string;
-  payload: unknown;
-  payloadBytes: number;
-  createdAt: string;
-};
-
-export type SessionEventsResponse = {
-  events: SessionEvent[];
-  nextSeq: number | null;
-};
-
-export type SessionLease = {
-  leaseId: string;
-  sessionId: string;
-  holder: string | null;
-  status: 'active' | 'released' | 'expired';
-  expiresAt: string;
-  createdAt: string;
-  updatedAt: string;
-  releasedAt: string | null;
-};
-
-export type SessionLeaseStatusResponse = {
-  lease: SessionLease | null;
-};
-
-export type SessionLeaseConflictError = PiApiError & {
-  lease: SessionLease;
-};
-
-export type SessionLeaseAcquireRequest = {
-  holder?: string;
-  ttlMs?: number;
-};
-
-export type SessionLeaseRenewRequest = {
-  ttlMs?: number;
-};
-
-export type CreateRunRequest = {
-  input: string;
-  prefix?: string;
-  metadata?: Record<string, unknown>;
-};
-
-export type SessionWriteRequest = {
-  input: string;
-  leaseId?: string;
-  prefix?: string;
-  metadata?: Record<string, unknown>;
-};
-
-export type SessionControlRequest = {
-  input: string;
-  leaseId?: string;
-};
-
-export type SessionAbortRequest = {
-  leaseId?: string;
-};
-
-export type SessionControlOk = { ok: true };
-
-export type ConversationRuntimeState = {
-  attached: boolean;
-  streaming: boolean;
-  canSend: boolean;
-  canStop: boolean;
-  queueDepth: number;
-};
-
-export type Conversation = {
-  id: string;
-  status: ConversationStatus;
-  title: string | null;
-  cwd: string;
-  createdAt: string;
-  updatedAt: string;
-  lastMessageAt: string | null;
-  runtime: ConversationRuntimeState;
-};
-
-export type ConversationMessage = {
-  id: string;
-  sessionId: string;
-  role: ConversationMessageRole;
-  status: ConversationMessageStatus;
-  content: string;
-  clientMessageId?: string;
-  sourceEventSeq: number | null;
-  createdAt: string;
-  updatedAt: string;
-  completedAt: string | null;
-  error: string | null;
-};
-
-export type ConversationMessagesResponse = {
-  messages: ConversationMessage[];
-};
-
-export type SendConversationMessageRequest = {
-  content: string;
-  clientMessageId?: string;
-};
-
-export type SendConversationMessageResponse = {
-  accepted: true;
-  clientMessageId?: string;
-  position: ConversationQueuePosition;
-  queueDepth: number;
-  durability: ConversationInputDurability;
-};
-
-export type StopConversationResponse = {
-  ok: true;
-  stoppedCurrent: boolean;
-  cancelledQueued: number;
-};
-
-export type ConversationReadyEvent = {
-  type: 'ready';
-  sessionId: string;
-  seq: number;
-  status: ConversationStatus;
-  queueDepth: number;
-};
-
-export type ConversationInputAcceptedEvent = {
-  type: 'input.accepted';
-  clientMessageId?: string;
-  queueDepth: number;
-  durability: ConversationInputDurability;
-};
-
-export type ConversationMessageConfirmedEvent = {
-  type: 'message.confirmed';
-  seq: number;
-  clientMessageId?: string;
-  message: ConversationMessage;
-};
-
-export type ConversationMessageDeltaEvent = {
-  type: 'message.delta';
-  seq: number;
-  messageId: string;
-  delta: string;
-};
-
-export type ConversationMessageCompletedEvent = {
-  type: 'message.completed';
-  seq: number;
-  message: ConversationMessage;
-};
-
-export type ConversationInputFailedEvent = {
-  type: 'input.failed';
-  clientMessageId?: string;
-  error: string;
-};
-
-export type ConversationStatusChangedEvent = {
-  type: 'status.changed';
-  seq: number;
-  status: ConversationStatus;
-};
-
-export type ConversationQueueChangedEvent = {
-  type: 'queue.changed';
-  queueDepth: number;
-};
-
-export type ConversationErrorEvent = {
-  type: 'error';
-  seq?: number;
-  error: string;
-};
-
-export type ConversationReplayCompleteEvent = {
-  type: 'replay.complete';
-  sessionId: string;
-  afterSeq: number | null;
-};
-
-export type ConversationServerEvent =
-  | ConversationReadyEvent
-  | ConversationInputAcceptedEvent
-  | ConversationMessageConfirmedEvent
-  | ConversationMessageDeltaEvent
-  | ConversationMessageCompletedEvent
-  | ConversationInputFailedEvent
-  | ConversationStatusChangedEvent
-  | ConversationQueueChangedEvent
-  | ConversationErrorEvent
-  | ConversationReplayCompleteEvent;
-
-export type AgentFileSummary = {
-  path: string;
-  hash: string | null;
-  size: number;
-  updatedAt: string | null;
-};
-
-export type AgentFileListResponse = {
-  files: AgentFileSummary[];
-};
-
-export type AgentFileDirectoryEntry = {
-  path: string;
-  name: string;
-  type: 'file' | 'directory';
-  hash: string | null;
-  size: number;
-  updatedAt: string | null;
-};
-
-export type AgentFileDirectoryResponse = {
-  path: string;
-  entries: AgentFileDirectoryEntry[];
-};
-
-export type AgentFile = {
-  path: string;
-  content: string;
-  hash: string;
-  size: number;
-  updatedAt: string | null;
-};
-
-export type AgentFileWriteRequest = {
-  path: string;
-  content: string;
-  expectedHash: string | null;
-};
-
-export type AgentFileWriteResult = {
-  path: string;
-  hash: string;
-  previousHash: string | null;
-};
-
-export type AgentFileAuditEntry = {
-  id: string;
-  path: string;
-  operation: string;
-  previousHash: string | null;
-  nextHash: string | null;
-  createdAt: string;
-};
-
-export type AgentFileAuditResponse = {
-  audits: AgentFileAuditEntry[];
-};
-
-export type RunStatus = {
-  id: string;
-  status: TurnStatus;
-  createdAt: string;
-  updatedAt: string;
-  startedAt: string | null;
-  finishedAt: string | null;
-  sessionId: string | null;
-  sessionFile: string | null;
-  error: string | null;
-};
-
-export type ProjectionStreamKind = 'projection';
-
-export type SessionStatusProjectionEvent = {
-  type: 'session.status';
-  sessionId: string;
-  status: SessionStatus;
-  seq?: number;
-};
-
-export type TurnStatusProjectionEvent = {
-  type: 'turn.status';
-  sessionId: string;
-  turnId: string;
-  status: TurnStatus;
-  seq?: number;
-};
-
-export type MessageUpsertProjectionEvent = {
-  type: 'message.upsert';
-  sessionId: string;
-  turnId: string;
-  seq: number;
-  message: SessionMessage;
-};
-
-export type MessageCompleteProjectionEvent = {
-  type: 'message.complete';
-  sessionId: string;
-  turnId: string;
-  seq: number;
-  message: SessionMessage;
-};
-
-export type SessionProjectionReplayCompleteEvent = {
-  type: 'session.replay_complete';
-  sessionId: string;
-  stream: ProjectionStreamKind;
-};
-
-export type SessionProjectionErrorEvent = {
-  type: 'error';
-  error: string;
-  sessionId?: string;
-};
-
-export type SessionProjectionEvent =
-  | SessionStatusProjectionEvent
-  | TurnStatusProjectionEvent
-  | MessageUpsertProjectionEvent
-  | MessageCompleteProjectionEvent
-  | SessionProjectionReplayCompleteEvent
-  | SessionProjectionErrorEvent;
-
-export type SessionDashboardSummary = Session & {
-  latestTurnStatus: TurnStatus | null;
-  lastMessagePreview: string | null;
-  turnCount: number | null;
-  messageCount: number | null;
-  activity: 'queued' | 'active' | 'idle';
-};
-
-export type SessionDashboardListResponse = {
-  sessions: SessionDashboardSummary[];
-  nextCursor: string | null;
-};
+export function validateSchema<T extends TSchema>(schema: T, value: unknown): SchemaValidationResult<T> {
+  if (Value.Check(schema, value)) {
+    return { ok: true, value };
+  }
+  return { ok: false, errors: getSchemaErrors(schema, value) };
+}
+
+export function assertSchema<T extends TSchema>(schema: T, value: unknown): Static<T> {
+  const result = validateSchema(schema, value);
+  if (!result.ok) {
+    throw new PiProtocolValidationError(result.errors);
+  }
+  return result.value;
+}
+
+export function isProviderProtocol(value: unknown): value is ProviderProtocol {
+  return checkSchema(ProviderProtocolSchema, value);
+}
+
+export function isProviderProfile(value: unknown): value is ProviderProfile {
+  return checkSchema(ProviderProfileSchema, value);
+}
+
+export function isProviderHealth(value: unknown): value is ProviderHealth {
+  return checkSchema(ProviderHealthSchema, value);
+}
+
+export function isProviderErrorEnvelope(value: unknown): value is ProviderErrorEnvelope {
+  return checkSchema(ProviderErrorEnvelopeSchema, value);
+}
+
+export function isProviderRun(value: unknown): value is ProviderRun {
+  return checkSchema(ProviderRunSchema, value);
+}
+
+export function isProviderSession(value: unknown): value is ProviderSession {
+  return checkSchema(ProviderSessionSchema, value);
+}
+
+export function isProviderConversation(value: unknown): value is ProviderConversation {
+  return checkSchema(ProviderConversationSchema, value);
+}
