@@ -6,6 +6,9 @@
   "description": "pi-protocol schemas, types, and provider discovery constants.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "pi-protocol": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
