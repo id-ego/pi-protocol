@@ -1,6 +1,6 @@
 # pi-protocol v1 Provider Interface Definition
 
-Updated: 2026-05-25
+Updated: 2026-05-26
 
 ## Status
 
@@ -10,7 +10,7 @@ This document is the canonical Markdown source of truth for the `pi-protocol` v1
 
 ## Core rules
 
-1. **Protocol version interfaces are mandatory.** A provider that declares `pi-protocol@1.0.0` compatibility must implement every interface in this document.
+1. **Protocol version interfaces are mandatory.** A provider that declares `pi-protocol@1.1.0` compatibility must implement every interface in this document.
 2. **Capabilities are not endpoint toggles.** Provider profile and installed skills describe what work the agent can perform; they do not describe which version endpoints exist.
 3. **pi-works does not manage provider internals.** Agent files, credential installation, model config, skills/extensions management, and owner audit belong to the pi-os Owner Plane.
 4. **Commands and queries use HTTP.** pi-works sends work commands and read queries through HTTP request/response.
@@ -22,7 +22,7 @@ This document is the canonical Markdown source of truth for the `pi-protocol` v1
 | Field | Value |
 |---|---|
 | Protocol name | `pi-protocol` |
-| Protocol version | `1.0.0` |
+| Protocol version | `1.1.0` |
 | Discovery path | `/.well-known/pi-provider` |
 | Metadata shape | `name + version` |
 | Realtime transport | Server-Sent Events (SSE) |
@@ -40,6 +40,8 @@ The old `baseline` field and old `/.well-known/pi-api/provider` discovery path a
 | Runs | `POST /runs` | Create a new assigned work run. |
 | Runs | `GET /runs/:runId` | Read run status. |
 | Runs | `POST /runs/:runId/cancel` | Request cancellation of a run. |
+| Repositories | `GET /repositories` | List or lookup known repositories by `gitUrl`. |
+| Repositories | `GET /repositories/:repositoryId/sessions` | List sessions associated with a repository. |
 | Sessions | `GET /sessions` | List sessions. |
 | Sessions | `GET /sessions/:sessionId` | Read session status and metadata. |
 | Messages | `GET /sessions/:sessionId/messages` | Read session messages/transcript. |
@@ -107,7 +109,7 @@ Installed skills are always public in v1. There is no `visibility`, `private`, o
 {
   "protocol": {
     "name": "pi-protocol",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "profile": {
     "id": "ego-agent",
@@ -144,7 +146,7 @@ GET /health
   "version": "0.4.0",
   "protocol": {
     "name": "pi-protocol",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "status": {
     "readiness": "ready",
@@ -173,6 +175,7 @@ Example request:
 ```json
 {
   "input": "Implement the selected issue.",
+  "gitUrl": "git@gitlab.anakonn.com:anakonn/pi-works.git",
   "context": {
     "source": "gitlab.issue",
     "url": "https://gitlab.example.com/group/project/-/issues/123"
@@ -190,9 +193,18 @@ Example response:
   "id": "run_123",
   "status": "queued",
   "sessionId": "session_123",
+  "repositoryId": "repository_123",
   "createdAt": "2026-05-25T00:00:00.000Z"
 }
 ```
+
+`gitUrl` is optional. When present, it must use scp-like SSH syntax:
+
+```text
+git@gitlab.anakonn.com:anakonn/pi-works.git
+```
+
+Providers must reject `https://...`, `ssh://...`, and other non scp-like SSH forms for `gitUrl` in v1. `input` remains required. A provider that accepts `gitUrl` should prepare the run in the cloned repository working tree before invoking the agent.
 
 ### Read run
 
@@ -207,6 +219,51 @@ POST /runs/:runId/cancel
 ```
 
 Cancellation is a request. Providers should return the resulting run state or a standard error if cancellation is impossible.
+
+## Repositories
+
+Repositories are first-class records for repository-oriented work. They identify git remotes used by runs and provide a stable lookup point for repository-associated sessions.
+
+### Repository shape
+
+```json
+{
+  "id": "repository_123",
+  "gitUrl": "git@gitlab.anakonn.com:anakonn/pi-works.git",
+  "host": "gitlab.anakonn.com",
+  "path": "anakonn/pi-works",
+  "name": "pi-works",
+  "createdAt": "2026-05-25T00:00:00.000Z",
+  "updatedAt": "2026-05-25T00:00:00.000Z"
+}
+```
+
+`gitUrl` is unique and must use scp-like SSH syntax. `host`, `path`, and `name` are parsed from `gitUrl`.
+
+### List or lookup repositories
+
+```http
+GET /repositories?gitUrl=git@gitlab.anakonn.com%3Aanakonn%2Fpi-works.git
+```
+
+Example response:
+
+```json
+{
+  "repositories": [],
+  "nextCursor": null
+}
+```
+
+When `gitUrl` is provided, the result contains zero or one repository because `gitUrl` is unique.
+
+### List repository sessions
+
+```http
+GET /repositories/:repositoryId/sessions?limit=25&cursor=<cursor>
+```
+
+Response shape is the same as `GET /sessions`.
 
 ## Sessions
 

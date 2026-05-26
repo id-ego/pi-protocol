@@ -14,7 +14,7 @@ This repository should contain only shared interface material required for pi-os
 
 - provider discovery constants
 - protocol metadata schemas/types
-- health/profile/error/run/session/conversation/event schemas and types
+- health/profile/error/run/repository/session/conversation/event schemas and types
 - creator helpers for pi-os provider responses/events/errors
 - consumer helpers for pi-works discovery, compatibility, and parsing
 - framework-neutral CLI contract tools
@@ -37,9 +37,9 @@ Transitional exports from the old monorepo shared typing package are not part of
 ## Install
 
 ```bash
-bun add @anakonn/pi-protocol@1.1.0
+bun add @anakonn/pi-protocol@1.2.0
 # or
-npm install @anakonn/pi-protocol@1.1.0
+npm install @anakonn/pi-protocol@1.2.0
 ```
 
 Consumers should pin exact versions.
@@ -58,7 +58,7 @@ Current values:
 
 ```ts
 PI_PROTOCOL_NAME = 'pi-protocol';
-PI_PROTOCOL_VERSION = '1.0.0';
+PI_PROTOCOL_VERSION = '1.1.0';
 PI_PROVIDER_DISCOVERY_PATH = '/.well-known/pi-provider';
 ```
 
@@ -85,6 +85,7 @@ pi-protocol init-provider ./fixtures
 pi-protocol validate ./fixtures
 pi-protocol inspect-provider http://localhost:3000
 pi-protocol inspect-provider http://localhost:3000 --create-run --token "$PI_PROVIDER_TOKEN" --json
+pi-protocol inspect-provider http://localhost:3000 --create-run --git-url git@gitlab.anakonn.com:anakonn/pi-os.git --token "$PI_PROVIDER_TOKEN"
 ```
 
 `inspect-provider` read-only mode checks discovery/profile/health. Full contract mode uses `--create-run` because it calls side-effect endpoints.
@@ -113,7 +114,7 @@ Consumers should pin exact versions, for example:
 ```json
 {
   "dependencies": {
-    "@anakonn/pi-protocol": "1.1.0"
+    "@anakonn/pi-protocol": "1.2.0"
   }
 }
 ```

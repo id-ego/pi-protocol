@@ -1,6 +1,6 @@
 {
   "name": "@anakonn/pi-protocol",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "private": false,
   "description": "Public pi-protocol schemas, types, SDK helpers, and CLI contract checks for pi-os providers and pi-works consumers.",

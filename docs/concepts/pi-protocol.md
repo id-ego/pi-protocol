@@ -1,6 +1,6 @@
 # pi-protocol
 
-Updated: 2026-05-25
+Updated: 2026-05-26
 
 ## Purpose
 
@@ -22,6 +22,7 @@ In scope:
 - provider API authentication behavior
 - standard error envelope
 - runs/jobs
+- repositories
 - sessions
 - session messages
 - session events
@@ -49,7 +50,7 @@ Current v1 constants:
 
 ```ts
 PI_PROTOCOL_NAME = 'pi-protocol';
-PI_PROTOCOL_VERSION = '1.0.0';
+PI_PROTOCOL_VERSION = '1.1.0';
 PI_PROVIDER_DISCOVERY_PATH = '/.well-known/pi-provider';
 ```
 
@@ -58,7 +59,7 @@ Current v1 provider metadata uses `name + version` only:
 ```json
 {
   "name": "pi-protocol",
-  "version": "1.0.0"
+  "version": "1.1.0"
 }
 ```
 
@@ -68,7 +69,7 @@ The old `baseline` field and old `/.well-known/pi-api/provider` discovery path a
 
 `pi-protocol` v1 does not use optional protocol endpoint capabilities.
 
-If a provider declares compatibility with `pi-protocol@1.0.0`, every communication interface in that version is mandatory.
+If a provider declares compatibility with `pi-protocol@1.1.0`, every communication interface in that version is mandatory.
 
 Important rule:
 
@@ -83,6 +84,7 @@ provider profile / discovery
 health / readiness
 auth / standard errors
 runs
+repositories
 sessions
 session messages
 session events
@@ -124,7 +126,7 @@ Response shape:
 {
   "protocol": {
     "name": "pi-protocol",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "profile": {
     "id": "ego-agent",
@@ -163,7 +165,7 @@ Health includes protocol metadata and operational readiness information.
   "version": "0.4.0",
   "protocol": {
     "name": "pi-protocol",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "status": {
     "readiness": "ready",
@@ -218,7 +220,18 @@ GET /runs/:runId
 POST /runs/:runId/cancel
 ```
 
-A run request may include input, context references, project/repository metadata, constraints, and expected output hints. The provider decides how to execute the work internally.
+A run request includes required `input` and may include optional top-level `gitUrl`, context references, constraints, and expected output hints. `gitUrl` must use scp-like SSH syntax, for example `git@gitlab.anakonn.com:anakonn/pi-works.git`. When present, the provider may associate the run/session with a first-class repository record and return `repositoryId` in the run response.
+
+## Repositories
+
+Repositories are first-class records for repository-oriented work.
+
+```http
+GET /repositories?gitUrl=git@gitlab.anakonn.com%3Aanakonn%2Fpi-works.git
+GET /repositories/:repositoryId/sessions
+```
+
+`GET /repositories` returns `{ repositories, nextCursor }`. `GET /repositories/:repositoryId/sessions` returns the same session list shape as `GET /sessions`.
 
 ## Sessions
 
