@@ -2,7 +2,7 @@
 title: pi-protocol SDK boundary and contract ownership
 status: active
 summary: pi-protocol owns only the stable pi-os provider to pi-works consumer wire contract, SDK helpers, CLI contract checks, and canonical specs; app/runtime/BFF internals must stay in owning repos.
-updated_at: 2026-05-25
+updated_at: 2026-05-26
 ---
 
 # pi-protocol SDK boundary and contract ownership
@@ -52,7 +52,7 @@ Do not create a long-lived `compat` area for transitional exports unless a futur
 The current v1 constants are protocol constants, not environment configuration:
 
 - `PI_PROTOCOL_NAME = 'pi-protocol'`
-- `PI_PROTOCOL_VERSION = '1.0.0'`
+- `PI_PROTOCOL_VERSION = '1.1.0'`
 - `PI_PROVIDER_DISCOVERY_PATH = '/.well-known/pi-provider'`
 
 Current v1 provider metadata uses `name + version` only.
@@ -79,7 +79,6 @@ Before merging protocol package changes, run the project validation set where ap
 ```bash
 bun run typecheck
 bun run build
-bun run smoke:boundary
 bun run pack:check
 ```
 

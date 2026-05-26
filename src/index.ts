@@ -2,7 +2,7 @@ import { Type, type Static, type TSchema } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 
 export const PI_PROTOCOL_NAME = 'pi-protocol' as const;
-export const PI_PROTOCOL_VERSION = '1.0.0' as const;
+export const PI_PROTOCOL_VERSION = '1.1.0' as const;
 
 export const PI_PROVIDER_DISCOVERY_PATH = '/.well-known/pi-provider' as const;
 export const PI_PROVIDER_PROFILE_PATH = '/provider/profile' as const;
@@ -10,6 +10,7 @@ export const PI_PROVIDER_HEALTH_PATH = '/health' as const;
 export const PI_PROVIDER_RUNS_PATH = '/runs' as const;
 export const PI_PROVIDER_SESSIONS_PATH = '/sessions' as const;
 export const PI_PROVIDER_CONVERSATIONS_PATH = '/conversations' as const;
+export const PI_PROVIDER_REPOSITORIES_PATH = '/repositories' as const;
 
 export function providerRunPath(runId: string): string {
   return `${PI_PROVIDER_RUNS_PATH}/${encodeURIComponent(runId)}`;
@@ -45,6 +46,14 @@ export function providerConversationMessagesPath(sessionId: string): string {
 
 export function providerConversationStopPath(sessionId: string): string {
   return `${providerConversationPath(sessionId)}/stop`;
+}
+
+export function providerRepositoryPath(repositoryId: string): string {
+  return `${PI_PROVIDER_REPOSITORIES_PATH}/${encodeURIComponent(repositoryId)}`;
+}
+
+export function providerRepositorySessionsPath(repositoryId: string): string {
+  return `${providerRepositoryPath(repositoryId)}/sessions`;
 }
 
 export const ProviderProtocolSchema = Type.Object({
@@ -138,8 +147,15 @@ export type ProviderRunContext = Static<typeof ProviderRunContextSchema>;
 export const ProviderRunConstraintsSchema = Type.Record(Type.String(), Type.Unknown());
 export type ProviderRunConstraints = Static<typeof ProviderRunConstraintsSchema>;
 
+export const ProviderGitUrlSchema = Type.String({
+  minLength: 1,
+  pattern: '^git@[A-Za-z0-9.-]+:[A-Za-z0-9._/-]+\\.git$',
+});
+export type ProviderGitUrl = Static<typeof ProviderGitUrlSchema>;
+
 export const ProviderCreateRunRequestSchema = Type.Object({
   input: Type.String({ minLength: 1 }),
+  gitUrl: Type.Optional(ProviderGitUrlSchema),
   context: Type.Optional(ProviderRunContextSchema),
   constraints: Type.Optional(ProviderRunConstraintsSchema),
 });
@@ -149,9 +165,27 @@ export const ProviderRunSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   status: ProviderRunStatusSchema,
   sessionId: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  repositoryId: Type.Optional(Type.String({ minLength: 1 })),
   createdAt: Type.String({ minLength: 1 }),
 });
 export type ProviderRun = Static<typeof ProviderRunSchema>;
+
+export const ProviderRepositorySchema = Type.Object({
+  id: Type.String({ minLength: 1 }),
+  gitUrl: ProviderGitUrlSchema,
+  host: Type.String({ minLength: 1 }),
+  path: Type.String({ minLength: 1 }),
+  name: Type.String({ minLength: 1 }),
+  createdAt: Type.String({ minLength: 1 }),
+  updatedAt: Type.String({ minLength: 1 }),
+});
+export type ProviderRepository = Static<typeof ProviderRepositorySchema>;
+
+export const ProviderRepositoryListResponseSchema = Type.Object({
+  repositories: Type.Array(ProviderRepositorySchema),
+  nextCursor: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+});
+export type ProviderRepositoryListResponse = Static<typeof ProviderRepositoryListResponseSchema>;
 
 export const ProviderSessionStatusSchema = Type.Union([
   Type.Literal('queued'),
@@ -426,6 +460,14 @@ export function parseProviderRun(value: unknown): SchemaValidationResult<typeof 
   return validateSchema(ProviderRunSchema, value);
 }
 
+export function parseProviderRepository(value: unknown): SchemaValidationResult<typeof ProviderRepositorySchema> {
+  return validateSchema(ProviderRepositorySchema, value);
+}
+
+export function parseProviderRepositoryListResponse(value: unknown): SchemaValidationResult<typeof ProviderRepositoryListResponseSchema> {
+  return validateSchema(ProviderRepositoryListResponseSchema, value);
+}
+
 export function parseProviderSession(value: unknown): SchemaValidationResult<typeof ProviderSessionSchema> {
   return validateSchema(ProviderSessionSchema, value);
 }
@@ -478,6 +520,20 @@ export function createProviderErrorEnvelope(input: {
 
 export function createProviderRun(input: ProviderRun): ProviderRun {
   return assertSchema(ProviderRunSchema, input);
+}
+
+export function createProviderRepository(input: ProviderRepository): ProviderRepository {
+  return assertSchema(ProviderRepositorySchema, input);
+}
+
+export function createProviderRepositoryListResponse(input: {
+  repositories: ProviderRepository[];
+  nextCursor?: string | null;
+}): ProviderRepositoryListResponse {
+  return assertSchema(ProviderRepositoryListResponseSchema, {
+    repositories: input.repositories,
+    nextCursor: input.nextCursor ?? null,
+  });
 }
 
 export function createProviderSession(input: ProviderSession): ProviderSession {
@@ -568,6 +624,14 @@ export function isProviderErrorEnvelope(value: unknown): value is ProviderErrorE
 
 export function isProviderRun(value: unknown): value is ProviderRun {
   return checkSchema(ProviderRunSchema, value);
+}
+
+export function isProviderRepository(value: unknown): value is ProviderRepository {
+  return checkSchema(ProviderRepositorySchema, value);
+}
+
+export function isProviderRepositoryListResponse(value: unknown): value is ProviderRepositoryListResponse {
+  return checkSchema(ProviderRepositoryListResponseSchema, value);
 }
 
 export function isProviderSession(value: unknown): value is ProviderSession {

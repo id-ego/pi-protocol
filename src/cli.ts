@@ -5,6 +5,7 @@ import {
   PI_PROVIDER_DISCOVERY_PATH,
   PI_PROVIDER_HEALTH_PATH,
   PI_PROVIDER_PROFILE_PATH,
+  PI_PROVIDER_REPOSITORIES_PATH,
   PI_PROVIDER_RUNS_PATH,
   ProviderConversationSchema,
   ProviderConversationSendResponseSchema,
@@ -12,6 +13,8 @@ import {
   ProviderErrorEnvelopeSchema,
   ProviderHealthSchema,
   ProviderProfileSchema,
+  ProviderRepositoryListResponseSchema,
+  ProviderRepositorySchema,
   ProviderRunSchema,
   ProviderSessionEventSchema,
   ProviderSessionEventsResponseSchema,
@@ -26,6 +29,8 @@ import {
   createProviderErrorEnvelope,
   createProviderHealth,
   createProviderProfile,
+  createProviderRepository,
+  createProviderRepositoryListResponse,
   createProviderRun,
   createProviderSession,
   createProviderSessionEvent,
@@ -38,6 +43,7 @@ import {
   providerConversationMessagesPath,
   providerConversationPath,
   providerConversationStopPath,
+  providerRepositorySessionsPath,
   providerRunCancelPath,
   providerRunPath,
   providerSessionEventsPath,
@@ -50,6 +56,8 @@ import {
   type ProviderErrorEnvelope,
   type ProviderHealth,
   type ProviderProfile,
+  type ProviderRepository,
+  type ProviderRepositoryListResponse,
   type ProviderRun,
   type ProviderSession,
   type ProviderSessionEvent,
@@ -91,6 +99,7 @@ type InspectOptions = {
   createRun: boolean;
   token: string | null;
   input: string;
+  gitUrl: string | null;
 };
 
 const SCHEMAS: NamedSchema[] = [
@@ -98,6 +107,8 @@ const SCHEMAS: NamedSchema[] = [
   { name: 'ProviderHealth', schema: ProviderHealthSchema },
   { name: 'ProviderErrorEnvelope', schema: ProviderErrorEnvelopeSchema },
   { name: 'ProviderRun', schema: ProviderRunSchema },
+  { name: 'ProviderRepository', schema: ProviderRepositorySchema },
+  { name: 'ProviderRepositoryListResponse', schema: ProviderRepositoryListResponseSchema },
   { name: 'ProviderSession', schema: ProviderSessionSchema },
   { name: 'ProviderSessionListResponse', schema: ProviderSessionListResponseSchema },
   { name: 'ProviderSessionMessage', schema: ProviderSessionMessageSchema },
@@ -148,6 +159,22 @@ const FIXTURES = new Map<string, unknown>([
       sessionId: 'session_example',
       createdAt: '2026-05-25T00:00:00.000Z',
     }) satisfies ProviderRun,
+  ],
+  [
+    'repository.json',
+    createProviderRepository({
+      id: 'repository_example',
+      gitUrl: 'git@gitlab.anakonn.com:anakonn/pi-protocol-example.git',
+      host: 'gitlab.anakonn.com',
+      path: 'anakonn/pi-protocol-example',
+      name: 'pi-protocol-example',
+      createdAt: '2026-05-25T00:00:00.000Z',
+      updatedAt: '2026-05-25T00:00:00.000Z',
+    }) satisfies ProviderRepository,
+  ],
+  [
+    'repositories.json',
+    createProviderRepositoryListResponse({ repositories: [] }) satisfies ProviderRepositoryListResponse,
   ],
   [
     'session.json',
@@ -236,7 +263,7 @@ function printUsage(): void {
 Usage:
   pi-protocol init-provider [directory]
   pi-protocol validate <path> [--json]
-  pi-protocol inspect-provider <baseUrl> [--json] [--token <token>] [--create-run] [--input <text>]
+  pi-protocol inspect-provider <baseUrl> [--json] [--token <token>] [--create-run] [--input <text>] [--git-url <gitUrl>]
   pi-protocol help
 
 Commands:
@@ -368,6 +395,8 @@ function schemaScore(file: string, schema: string): number {
   if (file.includes('message') && schema === 'providersessionmessage') return 90;
   if (file.includes('events') && schema.includes('eventsresponse')) return 100;
   if (file.includes('event') && schema === 'providersessionevent') return 90;
+  if (file.includes('repositories') && schema.includes('repositorylist')) return 100;
+  if (file.includes('repository') && schema === 'providerrepository') return 90;
   if (file.includes('run') && schema === 'providerrun') return 90;
   return 0;
 }
@@ -388,6 +417,7 @@ function parseInspectOptions(args: string[]): InspectOptions {
     createRun: args.includes('--create-run'),
     token: readOption(args, '--token') ?? process.env.PI_PROVIDER_TOKEN ?? null,
     input: readOption(args, '--input') ?? 'pi-protocol full contract smoke test',
+    gitUrl: readOption(args, '--git-url'),
   };
 }
 
@@ -402,10 +432,24 @@ async function inspectProvider(options: InspectOptions): Promise<number> {
   const authHeaders: Record<string, string> = options.token ? { Authorization: `Bearer ${options.token}` } : {};
   let runId: string | null = null;
   let sessionId: string | null = null;
+  let repositoryId: string | null = null;
 
   await checkJson(checks, options, 'discovery', 'GET', PI_PROVIDER_DISCOVERY_PATH, ProviderProfileSchema, 'ProviderProfile', authHeaders);
   await checkJson(checks, options, 'profile', 'GET', PI_PROVIDER_PROFILE_PATH, ProviderProfileSchema, 'ProviderProfile', authHeaders);
   await checkJson(checks, options, 'health', 'GET', PI_PROVIDER_HEALTH_PATH, ProviderHealthSchema, 'ProviderHealth', authHeaders);
+  await checkJson(checks, options, 'list repositories', 'GET', PI_PROVIDER_REPOSITORIES_PATH, ProviderRepositoryListResponseSchema, 'ProviderRepositoryListResponse', authHeaders);
+  if (options.gitUrl) {
+    await checkJson(
+      checks,
+      options,
+      'lookup repository by gitUrl',
+      'GET',
+      `${PI_PROVIDER_REPOSITORIES_PATH}?gitUrl=${encodeURIComponent(options.gitUrl)}`,
+      ProviderRepositoryListResponseSchema,
+      'ProviderRepositoryListResponse',
+      authHeaders,
+    );
+  }
 
   if (!options.createRun) {
     addSkipped(checks, 'create run', 'POST', PI_PROVIDER_RUNS_PATH, 'pass --create-run to run side-effect checks');
@@ -419,12 +463,15 @@ async function inspectProvider(options: InspectOptions): Promise<number> {
       ProviderRunSchema,
       'ProviderRun',
       { ...authHeaders, 'Content-Type': 'application/json' },
-      { input: options.input, context: { source: 'pi-protocol.inspect-provider' } },
+      options.gitUrl
+        ? { input: options.input, gitUrl: options.gitUrl, context: { source: 'pi-protocol.inspect-provider' } }
+        : { input: options.input, context: { source: 'pi-protocol.inspect-provider' } },
     );
     if (created.ok && typeof created.value === 'object' && created.value !== null) {
-      const run = created.value as { id?: unknown; sessionId?: unknown };
+      const run = created.value as { id?: unknown; sessionId?: unknown; repositoryId?: unknown };
       runId = typeof run.id === 'string' ? run.id : null;
       sessionId = typeof run.sessionId === 'string' ? run.sessionId : null;
+      repositoryId = typeof run.repositoryId === 'string' ? run.repositoryId : null;
     }
 
     if (runId) {
@@ -436,6 +483,11 @@ async function inspectProvider(options: InspectOptions): Promise<number> {
     }
 
     await checkJson(checks, options, 'list sessions', 'GET', '/sessions', ProviderSessionListResponseSchema, 'ProviderSessionListResponse', authHeaders);
+    if (repositoryId) {
+      await checkJson(checks, options, 'repository sessions', 'GET', providerRepositorySessionsPath(repositoryId), ProviderSessionListResponseSchema, 'ProviderSessionListResponse', authHeaders);
+    } else if (options.gitUrl) {
+      addSkipped(checks, 'repository sessions', 'GET', '/repositories/:repositoryId/sessions', 'create run did not return repository id');
+    }
 
     if (sessionId) {
       await checkJson(checks, options, 'read session', 'GET', providerSessionPath(sessionId), ProviderSessionSchema, 'ProviderSession', authHeaders);
